@@ -73,16 +73,16 @@ erDiagram
 stateDiagram-v2
     [*] --> pending : Topic Claim created
 
-    pending --> synced   : Gregor Samsa applies<br/>desired state successfully
-    pending --> error    : Reconciliation attempt<br/>fails
+    pending --> synced   : Gregor Samsa applies <br> desired state successfully
+    pending --> error    : Reconciliation attempt <br> fails
 
-    error   --> pending  : Retry triggered<br/>(next reconciliation loop)
-    error   --> deleting : Deletion requested<br/>while in error
+    error   --> pending  : Retry triggered <br> (next reconciliation loop)
+    error   --> deleting : Deletion requested <br> while in error
 
-    synced  --> pending  : Topic Definition updated<br/>(drift detected)
+    synced  --> pending  : Topic Definition updated <br> (drift detected)
     synced  --> deleting : Deletion requested
 
-    deleting --> [*]     : Resource removed from<br/>Kafka cluster
+    deleting --> [*]     : Resource removed from <br> Kafka cluster
 ```
 
 ## Gregor Samsa
@@ -95,7 +95,7 @@ Is aware of a single cluster and deals with its resource, like topic, acls and m
 ```mermaid
 graph LR
     subgraph Franz["Franz (Control Plane)"]
-        F_DB[("State Store<br/>Clusters · Topic Definitions<br/>Topic Claims")]
+        F_DB[("State Store <br> Clusters · Topic Definitions <br> Topic Claims")]
         F_API["API / Management Layer"]
         F_DB <--> F_API
     end
@@ -112,9 +112,9 @@ graph LR
         GS3_R["Reconciliation Loop"]
     end
 
-    F_DB -- "desired state<br/>(Topic Claims)" --> GS1_R
-    F_DB -- "desired state<br/>(Topic Claims)" --> GS2_R
-    F_DB -- "desired state<br/>(Topic Claims)" --> GS3_R
+    F_DB -- "desired state <br> (Topic Claims)" --> GS1_R
+    F_DB -- "desired state <br> (Topic Claims)" --> GS2_R
+    F_DB -- "desired state <br> (Topic Claims)" --> GS3_R
 
     GS1_R -- "reconcile" --> KC1_T
     GS2_R -- "reconcile" --> KC2_T
