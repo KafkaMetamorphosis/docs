@@ -39,13 +39,24 @@ Is aware of the Kafka cluster and its resources (topic, acl, etc) across the fle
 
 ```mermaid
 erDiagram
-    CLUSTER {
+    KAFKA_CLUSTER {
         string name PK "Immutable. Natural key in API paths."
         string bootstrap-url
         map labels
     }
 
+    KAFKA_CLUSTER_TOPICS {
+        string cluster-id FK
+        string topic-id FK
+    }
+
     TOPIC_DEFINITION {
+        string name PK "Immutable. Natural key in API paths."
+        string topic-configuration-id FK
+        map labels
+    }
+
+    TOPIC_CONFIGURATION {
         string name PK "Immutable. Natural key in API paths."
         integer partitions "Can only increase"
         integer replication-factor
@@ -57,32 +68,36 @@ erDiagram
     TOPIC_CLAIM {
         uuid id PK
         string topic-id FK
+        string topic-configuration-id FK
         string cluster-id FK
         enum status "pending | synced | error | deleting"
         string error-message "Null unless status = error"
         timestamp last-reconciled-at
     }
 
-    TOPIC_DEFINITION ||--o{ TOPIC_CLAIM : "claimed onto"
-    CLUSTER        ||--o{ TOPIC_CLAIM : "targeted by"
+    TOPIC_DEFINITION       ||--o{ TOPIC_CLAIM : "claimed onto"
+    TOPIC_DEFINITION       ||--o{ KAFKA_CLUSTER_TOPICS : "in"
+    KAFKA_CLUSTER          ||--o{ KAFKA_CLUSTER_TOPICS : "has"
+    KAFKA_CLUSTER          ||--o{ TOPIC_CLAIM : "targeted by"
+    TOPIC_CONFIGURATION    ||--o{ TOPIC_DEFINITION : "defined by"
+    TOPIC_CONFIGURATION    ||--o{ TOPIC_CLAIM : "overrided by"
 ```
 
 ### Topic Claim Reconciliation Flow
 
 ```mermaid
 stateDiagram-v2
-    [*] --> pending : Topic Claim created
+    [*]      --> Pending  : Topic Claim created/updated
 
-    pending --> synced   : Gregor Samsa applies <br> desired state successfully
-    pending --> error    : Reconciliation attempt <br> fails
+    Pending  --> Applying
 
-    error   --> pending  : Retry triggered <br> (next reconciliation loop)
-    error   --> deleting : Deletion requested <br> while in error
+    Applying --> Error    : Reconciliation attempt <br> Failed
+    Applying --> Synced 
 
-    synced  --> pending  : Topic Definition updated <br> (drift detected)
-    synced  --> deleting : Deletion requested
+    Error    --> Retrying
+    Retrying --> Applying
 
-    deleting --> [*]     : Resource removed from <br> Kafka cluster
+    Synced   --> [*]      : Reconciliation attempt <br> Success <br> Desired state Applied
 ```
 
 ## Gregor Samsa
