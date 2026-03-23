@@ -2,11 +2,13 @@
 
 This directory contains the technical documentation for the KafkaMetamorphosis system: a distributed platform for managing Kafka resources at scale across multiple clusters and locations.
 
-## Services
+## Vision of the project
+
+Make Kafka management as easy as maintain http connections by offering tools to keep kafka clusters under governance.
 
 ### Franz (Control Plane)
 
-Franz is the central authority of the fleet. It maintains the desired state of all registered Kafka clusters and their resources — topics, ACLs, and related configuration. It exposes a management API and propagates desired state to reconcilers via Topic Claims, which track the binding between a Topic Definition and a target Cluster through their reconciliation lifecycle (`pending`, `synced`, `error`, `deleting`).
+Franz is the central authority of the fleet. It maintains the desired state of all registered Kafka clusters and their resources — topics, ACLs, and related configuration. It exposes a management API and propagates desired state to reconcilers via Topic Claims, which track the binding between a Topic Definition and a target Cluster through their reconciliation lifecycle.
 
 ### Gregor Samsa (Execution Plane / Reconciler)
 

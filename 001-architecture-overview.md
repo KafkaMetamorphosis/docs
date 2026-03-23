@@ -6,6 +6,12 @@ Describe how the management of a big kafka fleet with resource across many clust
 
 Is aware of the Kafka cluster and its resources (topic, acl, etc) across the fleet. It will contain the state of cluster registered and the topics that are inside them. It has the tools to manage the resources configuration, cascade them to the actual resource and keep them inside a certain governance.
 
+## Important Concepts
+
+- The architecture is unidirecional. It means that the specs defined in Franz are set in the cluster, but there is no automatic update from the Kafka cluster to the topics.
+
+## Components
+
 **Cluster**
 | Field | Type | Required | Description |
 |---|---|---|---|
