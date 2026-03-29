@@ -4,7 +4,7 @@ This directory contains the technical documentation for the KafkaMetamorphosis s
 
 ## Vision of the project
 
-Make Kafka management as easy as maintain http connections by offering tools to keep kafka clusters under governance.
+Make Kafka management as easy as maintain managed queues like sqs or even make it easy as http connections by offering tools to keep kafka clusters under governance.
 
 ### Franz (Control Plane)
 
