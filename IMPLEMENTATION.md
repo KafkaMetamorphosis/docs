@@ -4,6 +4,22 @@ Tracks what has been implemented in Franz against the documented spec. Updated a
 
 ---
 
+## Overview
+
+| Feature | Status | Date | Commit |
+|---|---|---|---|
+| Database schema | ✅ Done | 2026-03-29 | `81bc779` |
+| Cluster CRUD | ✅ Done | 2026-03-15 | `b0f7fe8` |
+| TopicConfiguration CRUD | ✅ Done | 2026-03-22 | `35e8ba2` |
+| TopicDefinition CRUD + state machine | ✅ Done | 2026-03-29 | `7a28d4e` |
+| Topic Definition Expansion engine | ❌ Missing | — | — |
+| Gregor Samsa API (poll / inform / retry) | ❌ Missing | — | — |
+| Claim management endpoints | ❌ Missing | — | — |
+| Governance rules engine | ❌ Missing | — | — |
+| Gregor Samsa service | ❌ Not started | — | — |
+
+---
+
 ## Implemented
 
 ### Database Schema
