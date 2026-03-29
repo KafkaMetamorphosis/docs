@@ -18,4 +18,12 @@ Gregor Samsa runs as a sidecar or agent scoped to a single Kafka cluster. It rea
 
 | Document | Description |
 |---|---|
-| [architecture-overview.md](./architecture-overview.md) | High-level system architecture, domain model for Franz, and the Topic Claim reconciliation state machine. |
+| [001-architecture-overview.md](./001-architecture-overview.md) | High-level system architecture, full domain model, and all state machines. |
+| [002-clojure-projects-structure.md](./002-clojure-projects-structure.md) | Clojure project layout and namespace conventions. |
+| [003-franz/003.0-franz.md](./003-franz/003.0-franz.md) | Franz overview and dependencies. |
+| [003-franz/003.1-kafka-cluster.md](./003-franz/003.1-kafka-cluster.md) | Cluster registration — CRUD API. |
+| [003-franz/003.2-kafka-topic-definition.md](./003-franz/003.2-kafka-topic-definition.md) | TopicConfiguration and TopicDefinition — schemas, state machine, API. |
+| [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | TopicClaim and TopicRevision — state machines, reconciliation API, retry, outcome mapping. |
+| [003-franz/003.4-topic-cluster-selection.md](./003-franz/003.4-topic-cluster-selection.md) | Topic Definition Expansion — taint/toleration, affinity, shard-size, scheduling pipeline. |
+| [003-franz/003.5-governance.md](./003-franz/003.5-governance.md) | Governance rules — EDN config controlling topic and cluster create/update behaviour. |
+| [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md) | Gregor Samsa reconciliation loop. |

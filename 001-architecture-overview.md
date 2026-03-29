@@ -1,122 +1,225 @@
 # Architecture Overview
 
-Describe how the management of a big kafka fleet with resource across many clusters and locations.
-
-## Franz
-
-Is aware of the Kafka cluster and its resources (topic, acl, etc) across the fleet. It will contain the state of cluster registered and the topics that are inside them. It has the tools to manage the resources configuration, cascade them to the actual resource and keep them inside a certain governance.
+Describes how the management of a large Kafka fleet with resources across many clusters and locations works.
 
 ## Important Concepts
 
-- The architecture is unidirecional. It means that the specs defined in Franz are set in the cluster, but there is no automatic update from the Kafka cluster to the topics.
+- The architecture is unidirectional. Specs defined in Franz are applied to the clusters, but there is no automatic update from the Kafka cluster back to Franz.
 
 ## Components
 
-**Cluster**
+### Franz (Control Plane)
+
+Franz is aware of all registered Kafka clusters and their resources (topics, ACLs, etc.) across the fleet. It maintains desired state and exposes a management API. It also enforces governance rules and drives topic claim expansion.
+
+### Gregor Samsa (Reconciler)
+
+One Gregor Samsa instance runs per Kafka cluster. It polls Franz for pending revisions, reconciles the desired state against the actual Kafka cluster, and reports back what it did.
+
+---
+
+## Domain Model
+
+### Cluster
+
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `name` | `string` | Yes | Unique identifier for the cluster. Immutable after creation. Used as the natural key in API paths. |
-| `bootstrap-url` | `string` | Yes | Kafka bootstrap server URL (e.g. `broker-1:9092,broker-2:9092`). |
-| `labels` | `map<string, string>` | No | Arbitrary key-value metadata for categorization and filtering. Defaults to an empty map. |
+| `name` | `string` | Yes | Unique identifier. Immutable after creation. Used as the natural key in API paths. |
+| `default-topic-configuration-id` | `uuid` | Yes | Default TopicConfiguration applied to topics on this cluster. |
+| `bootstrap-url` | `string` | Yes | Kafka bootstrap server URL. |
+| `labels` | `map<string, string>` | No | Arbitrary key-value metadata. Defaults to empty map. |
 
-**Topic Definition**
+### TopicConfiguration
+
+Standalone entity holding Kafka topic config parameters. Referenced by TopicDefinition and optionally overridden per TopicClaim.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `name` | `string` | Yes | Unique topic name. Immutable after creation. Used as the natural key in API paths. |
+| `name` | `string` | Yes | Unique name. |
 | `partitions` | `integer` | Yes | Number of partitions. Can only increase, never decrease. |
 | `replication-factor` | `integer` | Yes | Number of replicas per partition. |
-| `retention-ms` | `long` | No | Message retention time in milliseconds. When omitted, the broker default applies. |
-| `configs` | `map<string, string>` | No | Additional Kafka topic configuration entries (e.g. `cleanup.policy`, `compression.type`). Defaults to an empty map. |
-| `labels` | `map<string, string>` | No | Arbitrary key-value metadata for categorization and filtering. Defaults to an empty map. |
+| `retention-ms` | `long` | Yes | Message retention time in milliseconds. |
+| `configs` | `map<string, string>` | No | Additional Kafka topic config entries. Defaults to empty map. |
+| `labels` | `map<string, string>` | No | Arbitrary key-value metadata. Defaults to empty map. |
 
-**Topic Claim**
+### TopicDefinition
+
+A template for topics that will exist inside Kafka clusters. Does not hold config fields directly — references a TopicConfiguration.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `topic-name` | `string` | Yes | Unique topic name. Immutable after creation. Same as the real topic name in Kafka. |
+| `topic-configuration-id` | `uuid` | Yes | FK to TopicConfiguration. Applied to all claims, overrides cluster default. |
+| `status` | `enum` | Yes | `Active` \| `Paused` \| `Error` \| `Deleted` |
+| `expansion-status` | `enum` | Yes | `Expanded` \| `PendingExpansion` — whether all eligible clusters have claims. |
+| `labels` | `map<string, string>` | No | Arbitrary key-value metadata. Defaults to empty map. |
+
+### TopicClaim
+
+Represents one topic on one cluster. Created automatically by Franz during expansion.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `id` | `uuid` | Yes | System-generated unique identifier. |
-| `topic-id` | `FK` | Yes | Foreign key referencing the topic definition. |
-| `cluster-id` | `FK` | Yes | Foreign key referencing the target cluster. |
-| `status` | `enum` | Yes | One of: `pending`, `synced`, `error`, `deleting`. |
-| `error-message` | `string` | No | Details of the last reconciliation error. Null when status is not `error`. |
-| `last-reconciled-at` | `timestamp` | No | Timestamp of the last successful or attempted reconciliation. Null if never reconciled. |
+| `topic-definition-id` | `uuid` | Yes | FK to TopicDefinition. |
+| `topic-configuration-override-id` | `uuid` | No | FK to TopicConfiguration. Overrides definition config for this claim only. |
+| `kafka-cluster-id` | `uuid` | Yes | FK to Cluster. |
+| `status` | `enum` | Yes | `Pending` \| `Ready` \| `Paused` \| `Deleted` \| `Error` |
+| `labels` | `map<string, string>` | No | Arbitrary key-value metadata. Defaults to empty map. |
 
-### Franz Domain Model
+### TopicRevision
+
+Tracks a single reconciliation attempt for a claim. Franz creates one revision per change event.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | `uuid` | Yes | System-generated unique identifier. |
+| `topic-claim-id` | `uuid` | Yes | FK to TopicClaim. |
+| `topic-configuration` | `map<string, any>` | Yes | Materialized config values at the time of this revision. |
+| `kafka-cluster-id` | `uuid` | Yes | Target cluster. |
+| `status` | `enum` | Yes | `PendingReconciliation` \| `PendingDelete` \| `Created` \| `Updated` \| `Deleted` \| `Error` |
+| `last-topic-configuration` | `map<string, any>` | No | Config actually applied by Gregor Samsa. Always present on success. |
+| `error` | `string` | No | Error description from the last failed reconciliation attempt. |
+| `attempts` | `integer` | No | Number of reconciliation attempts made. |
+| `retry-of-revision-id` | `uuid` | No | FK to the revision this one retries. Enables full retry chain queries. |
+
+### Configuration override hierarchy
+
+Cluster default config → TopicDefinition config → TopicClaim override (most specific wins)
+
+---
+
+## Entity Relationships
 
 ```mermaid
 erDiagram
-    KAFKA_CLUSTER {
-        string name PK "Immutable. Natural key in API paths."
+    CLUSTER {
+        string name PK
+        uuid default-topic-configuration-id FK
         string bootstrap-url
         map labels
     }
 
-    KAFKA_CLUSTER_TOPICS {
-        string cluster-id FK
-        string topic-id FK
-    }
-
-    TOPIC_DEFINITION {
-        string name PK "Immutable. Natural key in API paths."
-        string topic-configuration-id FK
-        map labels
-    }
-
     TOPIC_CONFIGURATION {
-        string name PK "Immutable. Natural key in API paths."
-        integer partitions "Can only increase"
+        uuid id PK
+        string name
+        integer partitions
         integer replication-factor
         long retention-ms
         map configs
         map labels
     }
 
-    TOPIC_CLAIM {
-        uuid id PK
-        string topic-id FK
-        string topic-configuration-id FK
-        string cluster-id FK
-        enum status "pending | synced | error | deleting"
-        string error-message "Null unless status = error"
-        timestamp last-reconciled-at
+    TOPIC_DEFINITION {
+        string topic-name PK
+        uuid topic-configuration-id FK
+        enum status
+        enum expansion-status
+        map labels
     }
 
-    TOPIC_DEFINITION       ||--o{ TOPIC_CLAIM : "claimed onto"
-    TOPIC_DEFINITION       ||--o{ KAFKA_CLUSTER_TOPICS : "in"
-    KAFKA_CLUSTER          ||--o{ KAFKA_CLUSTER_TOPICS : "has"
-    KAFKA_CLUSTER          ||--o{ TOPIC_CLAIM : "targeted by"
-    TOPIC_CONFIGURATION    ||--o{ TOPIC_DEFINITION : "defined by"
-    TOPIC_CONFIGURATION    ||--o{ TOPIC_CLAIM : "overrided by"
+    TOPIC_CLAIM {
+        uuid id PK
+        uuid topic-definition-id FK
+        uuid topic-configuration-override-id FK
+        uuid kafka-cluster-id FK
+        enum status
+        map labels
+    }
+
+    TOPIC_REVISION {
+        uuid id PK
+        uuid topic-claim-id FK
+        map topic-configuration
+        uuid kafka-cluster-id FK
+        enum status
+        map last-topic-configuration
+        string error
+        integer attempts
+        uuid retry-of-revision-id FK
+    }
+
+    CLUSTER                ||--o{ TOPIC_CLAIM        : "targeted by"
+    TOPIC_CONFIGURATION    ||--o{ TOPIC_DEFINITION   : "configured by"
+    TOPIC_CONFIGURATION    |o--o{ TOPIC_CLAIM        : "overridden by"
+    TOPIC_DEFINITION       ||--o{ TOPIC_CLAIM        : "expanded into"
+    TOPIC_CLAIM            ||--o{ TOPIC_REVISION     : "tracked by"
 ```
 
-### Topic Claim Reconciliation Flow
+---
+
+## State Machines
+
+### TopicDefinition
 
 ```mermaid
 stateDiagram-v2
-    [*]      --> Pending  : Topic Claim created/updated
+    [*]      --> Active
 
-    Pending  --> Applying
+    Active   --> Paused  : Operator pauses
+    Active   --> Error   : At least one claim fails reconciliation
+    Active   --> Deleted : Operator deletes
 
-    Applying --> Error    : Reconciliation attempt <br> Failed
-    Applying --> Synced 
+    Paused   --> Active  : Operator resumes
 
-    Error    --> Retrying
-    Retrying --> Applying
+    Error    --> Active  : All claim errors resolved
+    Error    --> Paused  : Operator pauses
+    Error    --> Deleted : Operator deletes
 
-    Synced   --> [*]      : Reconciliation attempt <br> Success <br> Desired state Applied
+    Deleted  --> [*]
 ```
 
-## Gregor Samsa
+### TopicClaim
 
-Is aware of a single cluster and deals with its resource, like topic, acls and make sure governance is applied. It receive the expected state defined in Franz and make sure it is applied to the actual kafka cluster, reconciling as it as needed.
+```mermaid
+stateDiagram-v2
+    [*]      --> Pending
 
+    Pending  --> Ready
+    Pending  --> Deleted
+    Pending  --> Error
+    Pending  --> Paused  : Definition paused
+
+    Ready    --> Pending
+    Ready    --> Paused  : Definition paused
+
+    Error    --> Pending : Retry
+    Error    --> Paused  : Definition paused
+
+    Paused   --> Pending : Definition resumed
+
+    Deleted  --> Pending
+```
+
+### TopicRevision
+
+```mermaid
+stateDiagram-v2
+    [*]                    --> PendingReconciliation
+    [*]                    --> PendingDelete
+
+    PendingReconciliation  --> Created
+    PendingReconciliation  --> Updated
+    PendingDelete          --> Deleted
+    PendingReconciliation  --> Error
+    PendingDelete          --> Error
+
+    Error                  --> PendingReconciliation : Manual retry
+    Error                  --> PendingDelete         : Manual retry
+
+    Created                --> [*]
+    Updated                --> [*]
+    Deleted                --> [*]
+```
+
+---
 
 ## Overview
 
 ```mermaid
 graph LR
     subgraph Franz["Franz (Control Plane)"]
-        F_DB[("State Store <br> Clusters · Topic Definitions <br> Topic Claims")]
+        F_DB[("State Store\nClusters · Topic Definitions\nTopic Claims · Revisions")]
         F_API["API / Management Layer"]
         F_DB <--> F_API
     end
@@ -133,16 +236,15 @@ graph LR
         GS3_R["Reconciliation Loop"]
     end
 
-    F_DB -- "desired state <br> (Topic Claims)" --> GS1_R
-    F_DB -- "desired state <br> (Topic Claims)" --> GS2_R
-    F_DB -- "desired state <br> (Topic Claims)" --> GS3_R
+    F_DB -- "pending revisions" --> GS1_R
+    F_DB -- "pending revisions" --> GS2_R
+    F_DB -- "pending revisions" --> GS3_R
 
-    GS1_R -- "reconcile" --> KC1_T
-    GS2_R -- "reconcile" --> KC2_T
-    GS3_R -- "reconcile" --> KC3_T
+    GS1_R -- "reconcile" --> KC1_T["cluster-1"]
+    GS2_R -- "reconcile" --> KC2_T["cluster-2"]
+    GS3_R -- "reconcile" --> KC3_T["cluster-3"]
 
-    GS1_R -- "status updates" --> F_DB
-    GS2_R -- "status updates" --> F_DB
-    GS3_R -- "status updates" --> F_DB
+    GS1_R -- "outcome reports" --> F_DB
+    GS2_R -- "outcome reports" --> F_DB
+    GS3_R -- "outcome reports" --> F_DB
 ```
-
