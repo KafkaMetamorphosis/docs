@@ -13,7 +13,7 @@ Tracks what has been implemented in Franz against the documented spec. Updated a
 | TopicConfiguration CRUD | Central Registry | ✅ | ✅ | 2026-03-22 | `35e8ba2` |
 | TopicDefinition CRUD + state machine | Central Registry | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
 | Labels as metadata on all entities | Central Registry | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
-| Topic Definition Expansion engine | Traffic Management | ✅ | ❌ | — | — |
+| Topic Definition Expansion engine | Traffic Management | ✅ | ✅ | 2026-03-29 | `4f94066` |
 | Cluster migration flow | Traffic Management | ⚠️ endpoint only | ❌ | — | — |
 | Gregor Samsa API (poll / inform / retry) | Reconciliation | ✅ | ❌ | — | — |
 | Claim management (update-config, migration) | Reconciliation | ✅ | ❌ | — | — |
@@ -98,20 +98,46 @@ Spec: [003-franz/003.2-kafka-topic-definition.md](./003-franz/003.2-kafka-topic-
 
 ---
 
-## Not Yet Implemented
-
 ### Topic Definition Expansion Engine
-The scheduling engine that creates TopicClaims and TopicRevisions when a TopicDefinition is created/updated/deleted or a Cluster is created/updated.
+**Commit:** `4f94066` -- 2026-03-29
 
-- Taint/toleration evaluation (`franz.taint`, `franz.taint/toleration`)
-- Affinity selector matching (`franz.affinity/selector`)
-- Weight-based cluster ranking (`franz.affinity/weight`)
-- Shard-size selection (`franz.affinity/shard-size`)
-- Batch insert of TopicClaims + TopicRevisions in one transaction
-- Sets `expansion_status` on TopicDefinition (`Expanded` / `PendingExpansion`)
-- Manual expansion endpoint: `POST /api/v0/topic-definitions-expansion`
+The scheduling engine that creates TopicClaims and TopicRevisions based on taint/toleration, affinity selectors, weight ranking, and shard-size.
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/api/v0/topic_definitions_expansion` | Manual trigger, expands all PendingExpansion definitions |
+
+**Trigger points:**
+- Topic definition create: expands inline (synchronous)
+- Topic definition update (labels or config change): re-expands inline
+- Topic definition delete: creates PendingDelete revisions for all active claims
+- Cluster create: marks all active definitions as PendingExpansion
+- Cluster update (labels change): marks all active definitions as PendingExpansion
+
+**Pure logic (expansion.clj):**
+- `parse-taint` / `parse-tolerations` -- label parsing
+- `taint-allows-placement?` -- drain always blocks; no-creation requires matching toleration
+- `parse-affinity-selectors` / `cluster-matches-selectors?` -- comma-separated `key=value` matching
+- `cluster-weight` / `parse-shard-size` -- weight-based ranking, shard-size only with selectors
+- `select-eligible-clusters` -- full pipeline: drain separation, taint filter, selector filter, weight sort, shard-size limit
+- `materialize-topic-configuration` -- three-layer merge (cluster default, definition config, claim override)
+- `compute-expansion-plan` -- stale-revision guard, claim upsert/revision create/drain logic
+- `compute-deletion-plan` -- PendingDelete revisions for soft-deleted definitions
+
+**Orchestration (ops/expansion.clj):**
+- `expand-topic-definition!` -- single transaction: upsert claims, create revisions, drain, update expansion status
+- `expand-deleted-definition!` -- PendingDelete revisions + claim status to Deleted
+- `expand-all-pending!` -- batch expansion with per-definition error isolation
+
+**Test coverage:**
+- 12 unit tests (72 assertions) for all pure logic functions
+- 9 integration tests covering: basic expansion, taint/toleration, selector filtering, shard-size, no-selector, deletion, manual trigger, cluster-create marking
 
 Spec: [003-franz/003.4-topic-cluster-selection.md](./003-franz/003.4-topic-cluster-selection.md)
+
+---
+
+## Not Yet Implemented
 
 ---
 
