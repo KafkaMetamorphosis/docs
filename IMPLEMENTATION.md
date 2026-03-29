@@ -6,17 +6,26 @@ Tracks what has been implemented in Franz against the documented spec. Updated a
 
 ## Overview
 
-| Feature | Status | Date | Commit |
-|---|---|---|---|
-| Database schema | ✅ Done | 2026-03-29 | `81bc779` |
-| Cluster CRUD | ✅ Done | 2026-03-15 | `b0f7fe8` |
-| TopicConfiguration CRUD | ✅ Done | 2026-03-22 | `35e8ba2` |
-| TopicDefinition CRUD + state machine | ✅ Done | 2026-03-29 | `7a28d4e` |
-| Topic Definition Expansion engine | ❌ Missing | — | — |
-| Gregor Samsa API (poll / inform / retry) | ❌ Missing | — | — |
-| Claim management endpoints | ❌ Missing | — | — |
-| Governance rules engine | ❌ Missing | — | — |
-| Gregor Samsa service | ❌ Not started | — | — |
+| Feature | Pillar | Docs | Code | Date | Commit |
+|---|---|---|---|---|---|
+| Database schema | Central Registry | ✅ | ✅ | 2026-03-29 | `81bc779` |
+| Cluster CRUD | Central Registry | ✅ | ✅ | 2026-03-15 | `b0f7fe8` |
+| TopicConfiguration CRUD | Central Registry | ✅ | ✅ | 2026-03-22 | `35e8ba2` |
+| TopicDefinition CRUD + state machine | Central Registry | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
+| Labels as metadata on all entities | Central Registry | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
+| Topic Definition Expansion engine | Traffic Management | ✅ | ❌ | — | — |
+| Cluster migration flow | Traffic Management | ⚠️ endpoint only | ❌ | — | — |
+| Gregor Samsa API (poll / inform / retry) | Reconciliation | ✅ | ❌ | — | — |
+| Claim management (update-config, migration) | Reconciliation | ✅ | ❌ | — | — |
+| Governance rules engine | Governance | ⚠️ EDN sketch only | ❌ | — | — |
+| Governance integration flow | Governance | ❌ | ❌ | — | — |
+| Resilience / noisy neighbor protection | Resilience | ❌ | ❌ | — | — |
+| Fleet observability / reporting API | Operation Burden | ❌ | ❌ | — | — |
+| Label-driven automation | Operation Burden | ❌ | ❌ | — | — |
+| Cost efficiency / right-sizing rules | Cost Efficiency | ⚠️ examples only | ❌ | — | — |
+| Tiered storage integration | Cost Efficiency | ❌ | ❌ | — | — |
+| ACL management | Central Registry | ❌ | ❌ | — | — |
+| Gregor Samsa service | Reconciliation | ❌ | ❌ | — | — |
 
 ---
 
