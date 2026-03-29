@@ -14,7 +14,7 @@ Tracks what has been implemented in Franz against the documented spec. Updated a
 | TopicDefinition CRUD + state machine | Central Registry | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
 | Labels as metadata on all entities | Central Registry | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
 | Topic Definition Expansion engine | Traffic Management | ✅ | ✅ | 2026-03-29 | `4f94066` |
-| Cluster migration flow | Traffic Management | ⚠️ endpoint only | ❌ | — | — |
+| Cluster migration flow | Traffic Management | ✅ | ❌ | — | — |
 | Gregor Samsa API (poll / inform / retry) | Reconciliation | ✅ | ❌ | — | — |
 | Claim management (update-config, migration) | Reconciliation | ✅ | ❌ | — | — |
 | Governance rules engine | Governance | ⚠️ EDN sketch only | ❌ | — | — |
@@ -25,7 +25,8 @@ Tracks what has been implemented in Franz against the documented spec. Updated a
 | Cost efficiency / right-sizing rules | Cost Efficiency | ⚠️ examples only | ❌ | — | — |
 | Tiered storage integration | Cost Efficiency | ❌ | ❌ | — | — |
 | ACL management | Central Registry | ❌ | ❌ | — | — |
-| Gregor Samsa service | Reconciliation | ❌ | ❌ | — | — |
+| Gregor Samsa service | Reconciliation | ✅ | ❌ | — | — |
+| Operations / deployment guide | Operation Burden | ✅ | — | — | — |
 
 ---
 
@@ -133,7 +134,7 @@ The scheduling engine that creates TopicClaims and TopicRevisions based on taint
 - 12 unit tests (72 assertions) for all pure logic functions
 - 9 integration tests covering: basic expansion, taint/toleration, selector filtering, shard-size, no-selector, deletion, manual trigger, cluster-create marking
 
-Spec: [003-franz/003.4-topic-cluster-selection.md](./003-franz/003.4-topic-cluster-selection.md)
+Spec: [003-franz/003.4-topic-cluster-selection.md](./003-franz/003.4-topic-cluster-selection.md) | [003-franz/003.6-expansion-engine.md](./003-franz/003.6-expansion-engine.md)
 
 ---
 
@@ -153,7 +154,7 @@ The reconciler-facing endpoints. Gregor Samsa polls for pending revisions and re
 
 Inform contract: Gregor Samsa reports `outcome: created | updated | deleted | error`. Franz derives all state transitions internally.
 
-Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md)
+Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md)
 
 ---
 
@@ -165,7 +166,7 @@ User-facing endpoints for modifying existing claims.
 | `PUT` | `/api/v0/clusters/:cluster-name/claims/:claim-id/update-config` |
 | `PUT` | `/api/v0/clusters/:cluster-name/claims/:claim-id/cluster-migration` |
 
-Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md)
+Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | [003-franz/003.7-claim-management.md](./003-franz/003.7-claim-management.md)
 
 ---
 
@@ -178,4 +179,6 @@ Spec: [003-franz/003.5-governance.md](./003-franz/003.5-governance.md)
 
 ## Gregor Samsa (Reconciler Service)
 
-Not started. Separate service from Franz. Spec: [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md)
+Not started. Separate service from Franz.
+
+Spec: [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md) | [005-operations/005.0-overview.md](./005-operations/005.0-overview.md)

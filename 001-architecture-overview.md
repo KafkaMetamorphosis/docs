@@ -63,9 +63,10 @@ Represents one topic on one cluster. Created automatically by Franz during expan
 | `id` | `uuid` | Yes | System-generated unique identifier. |
 | `topic-definition-id` | `uuid` | Yes | FK to TopicDefinition. |
 | `topic-configuration-override-id` | `uuid` | No | FK to TopicConfiguration. Overrides definition config for this claim only. |
-| `kafka-cluster-id` | `uuid` | Yes | FK to Cluster. |
+| `cluster-id` | `uuid` | Yes | FK to Cluster. |
 | `status` | `enum` | Yes | `Pending` \| `Ready` \| `Paused` \| `Deleted` \| `Error` |
 | `labels` | `map<string, string>` | No | Arbitrary key-value metadata. Defaults to empty map. |
+| `error` | `string` | No | Error description when claim is in Error status. |
 
 ### TopicRevision
 
@@ -122,9 +123,10 @@ erDiagram
         uuid id PK
         uuid topic-definition-id FK
         uuid topic-configuration-override-id FK
-        uuid kafka-cluster-id FK
+        uuid cluster-id FK
         enum status
         map labels
+        string error
     }
 
     TOPIC_REVISION {
