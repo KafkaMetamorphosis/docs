@@ -1,10 +1,10 @@
 # Architecture Overview
 
-Describes how the management of a large Kafka fleet with resources across many clusters and locations works.
+Describes how the management of a large Kafka fleet with resources across many clusters and locations.
 
 ## Important Concepts
 
-- The architecture is unidirectional. Specs defined in Franz are applied to the clusters, but there is no automatic update from the Kafka cluster back to Franz.
+- The architecture is declarative, which means it is unidirectional. Specs defined in Franz are applied to the clusters, but there is no automatic update from the Kafka cluster back to Franz.
 
 ## Components
 
