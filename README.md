@@ -18,6 +18,12 @@ Gregor Samsa runs as a sidecar or agent scoped to a single Kafka cluster. It rea
 
 | Document | Description |
 |---|---|
+| [IMPLEMENTATION.md](./IMPLEMENTATION.md) | Implementation status — what is built, when, and what is still missing. |
+
+### Specs
+
+| Document | Description |
+|---|---|
 | [001-architecture-overview.md](./001-architecture-overview.md) | High-level system architecture, full domain model, and all state machines. |
 | [002-clojure-projects-structure.md](./002-clojure-projects-structure.md) | Clojure project layout and namespace conventions. |
 | [003-franz/003.0-franz.md](./003-franz/003.0-franz.md) | Franz overview and dependencies. |
