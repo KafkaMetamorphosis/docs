@@ -34,59 +34,97 @@ Gregor Samsa is the execution-plane service that reconciles desired state (defin
 - **One instance per cluster**: Each Gregor Samsa process is configured with a single `CLUSTER_NAME` and only manages topics on that cluster.
 - **Stateless**: Gregor Samsa does not persist any state locally. All state lives in Franz's PostgreSQL database.
 - **Pull-based**: Gregor Samsa polls Franz for work. Franz never pushes to Gregor Samsa.
-- **Unidirectional**: Specs flow from Franz to Kafka. There is no automatic feedback from Kafka's actual state back into Franz (beyond what Gregor Samsa reports).
+- **Drift-correcting**: In addition to applying pending revisions, Gregor Samsa continuously compares the actual Kafka state of every active topic against the desired state in Franz and corrects any divergence it finds.
 
 ---
 
 ## Reconciliation Loop
 
-Gregor Samsa runs a continuous loop:
+Gregor Samsa runs a continuous loop with two distinct processing paths per claim:
 
 ```
-                    +-------------+
-                    |   Start     |
-                    +------+------+
-                           |
-                    +------v------+
-                    |  Poll Franz |
-                    |  for pending|
-                    |  revisions  |
-                    +------+------+
-                           |
-                    +------v------+
-              +---->| Next        |
-              |     | revision?   |
-              |     +------+------+
-              |            |
-              |     Yes    |    No
-              |     +------v------+  +-------+
-              |     | Reconcile   |  | Sleep  |
-              |     | against     |  | (poll  |
-              |     | Kafka       |  | interval)
-              |     +------+------+  +---+---+
-              |            |             |
-              |     +------v------+      |
-              |     | Inform Franz|      |
-              |     | of outcome  |      |
-              |     +------+------+      |
-              |            |             |
-              +------------+-------------+
+                    +-----------+
+                    |   Start   |
+                    +-----+-----+
+                          |
+                    +-----v------+
+                    | Poll Franz |
+                    | (all active|
+                    | claims)    |
+                    +-----+------+
+                          |
+            Empty?        |        Has claims
+        +--------+--------+---------+
+        |                           |
+  +-----v-----+              +------v------+
+  |  Sleep    |        +---->| Next claim? |
+  | (interval)|        |     +------+------+
+  +-----+-----+        |            |
+        |              |     Yes    |     No (all done)
+        |              |     +------v------+
+        +------------->|     | Pending     |
+                       |     | revision?   |
+                       |     +------+------+
+                       |            |
+                       |   Yes      |       No
+                       |   +--------v--+   +--------v-----------+
+                       |   | Revision- |   | Drift detection:   |
+                       |   | driven:   |   | read actual Kafka  |
+                       |   | create /  |   | config, compare vs |
+                       |   | update /  |   | desired-topic-     |
+                       |   | delete    |   | configuration      |
+                       |   +--------+--+   +------+------+------+
+                       |            |             |      |
+                       |            |         Drift?    Same
+                       |            |      +----v----+  +------+
+                       |            |      | Apply   |  | Skip |
+                       |            |      | + log   |  | (no  |
+                       |            |      | + metric|  |  op) |
+                       |            |      +---------+  +------+
+                       |            |
+                       |    +-------v---------+
+                       |    | Collect revision|
+                       |    | outcome for     |
+                       |    | batch inform    |
+                       |    +-------+---------+
+                       |            |
+                       +------------+
+                              |
+                       (after all claims)
+                       +------v------+
+                       | Send batch  |
+                       | inform to   |
+                       | Franz       |
+                       +------+------+
+                              |
+                              v
+                           (loop)
 ```
 
 ### Loop Steps
 
 1. **Poll**: `GET /api/v0/clusters/:cluster-name/poll-pending-reconciliations`
-   - Returns all revisions with status `PendingReconciliation` or `PendingDelete` for this cluster.
-   - If the response is empty, sleep for the configured poll interval and try again.
+   - Returns ALL active (non-Paused, non-Error, non-Deleted) claims for this cluster.
+   - Each claim includes its `desired-topic-configuration` and an optional embedded `pending-revision`.
+   - If the response contains no claims, sleep for the configured poll interval and try again.
 
-2. **Reconcile**: For each revision, perform the appropriate Kafka admin operation:
-   - `PendingReconciliation` with no existing topic on the cluster: **Create** the topic with the materialised config.
-   - `PendingReconciliation` with an existing topic: **Update** the topic config to match the materialised config.
-   - `PendingDelete`: **Delete** the topic from the cluster.
+2. **For each claim, choose a path:**
 
-3. **Inform**: `PUT /api/v0/clusters/:cluster-name/inform-reconciliation-status/:revision-id`
-   - Report the outcome of the reconciliation attempt.
-   - Gregor Samsa only reports WHAT happened. Franz derives all state transitions internally.
+   **Path A — Revision-driven** (`pending-revision` is non-null):
+   - `PendingReconciliation`: create or update the topic on Kafka with the revision's config.
+   - `PendingDelete`: run safety checks first (see [Deletion Safety Checks](#deletion-safety-checks)), then delete the topic.
+   - Collect the outcome for the batch inform call.
+
+   **Path B — Drift detection** (`pending-revision` is null, claim is `Ready`):
+   - Read the actual topic config from Kafka using `AdminClient.describeTopics` and `AdminClient.describeConfigs`.
+   - Compare against `claim.desired-topic-configuration`.
+   - If configs match: no action, no outcome emitted for this claim.
+   - If configs differ: apply the desired config to Kafka. Log the drift event and emit a metric (`gregor_samsa_drift_corrections_total` labelled by cluster and topic name). Do **not** report drift corrections to Franz — they are handled entirely by Gregor Samsa.
+
+3. **Inform**: `PUT /api/v0/clusters/:cluster-name/inform-reconciliation-status`
+   - After processing all claims in the poll batch, send a single batch inform call to Franz.
+   - The batch contains only revision outcomes (Path A results). Drift corrections (Path B) are never included.
+   - Claims with no outcome (no drift, no pending revision) are omitted.
 
 ---
 
@@ -98,15 +136,16 @@ Gregor Samsa runs a continuous loop:
 GET /api/v0/clusters/:cluster-name/poll-pending-reconciliations
 ```
 
-Returns revisions with their associated claim and cluster details.
+Returns all active claims for the cluster with their desired state and any pending revision.
 
-**Response** `200`:
+**Response `200`:**
 ```json
 {
-    "revisions": [
+    "claims": [
         {
             "claim": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",
+                "status": "Ready",
                 "topic-definition": {
                     "topic-id": "660e8400-e29b-41d4-a716-446655440001",
                     "name": "user-events",
@@ -121,11 +160,7 @@ Returns revisions with their associated claim and cluster details.
                 "labels": {
                     "my-namespace/priority": "high"
                 },
-                "status": "Pending"
-            },
-            "revision": {
-                "id": "770e8400-e29b-41d4-a716-446655440002",
-                "topic-configuration": {
+                "desired-topic-configuration": {
                     "retention-ms": 604800000,
                     "partitions": 6,
                     "replication-factor": 3,
@@ -133,12 +168,44 @@ Returns revisions with their associated claim and cluster details.
                         "cleanup.policy": "delete",
                         "compression.type": "lz4"
                     }
+                }
+            },
+            "pending-revision": null
+        },
+        {
+            "claim": {
+                "id": "550e8400-e29b-41d4-a716-446655440001",
+                "status": "Pending",
+                "topic-definition": {
+                    "topic-id": "660e8400-e29b-41d4-a716-446655440002",
+                    "name": "payment-events",
+                    "labels": {}
                 },
                 "kafka-cluster": {
                     "name": "production-us-east-1",
                     "bootstrap-url": "broker-1:9092,broker-2:9092"
                 },
-                "status": "PendingReconciliation"
+                "labels": {},
+                "desired-topic-configuration": {
+                    "retention-ms": 86400000,
+                    "partitions": 3,
+                    "replication-factor": 3,
+                    "configs": {
+                        "cleanup.policy": "delete"
+                    }
+                }
+            },
+            "pending-revision": {
+                "id": "770e8400-e29b-41d4-a716-446655440002",
+                "status": "PendingReconciliation",
+                "topic-configuration": {
+                    "retention-ms": 86400000,
+                    "partitions": 3,
+                    "replication-factor": 3,
+                    "configs": {
+                        "cleanup.policy": "delete"
+                    }
+                }
             }
         }
     ]
@@ -149,88 +216,105 @@ Returns revisions with their associated claim and cluster details.
 
 | Field | Usage |
 |---|---|
-| `revision.id` | Used in the inform call to report outcome. |
-| `revision.status` | Determines the operation: `PendingReconciliation` = create/update, `PendingDelete` = delete. |
-| `revision.topic-configuration` | The exact config to apply to the Kafka topic. |
-| `revision.kafka-cluster.bootstrap-url` | Where to connect (should match the instance's own config). |
-| `claim.topic-definition.name` | The Kafka topic name to create/update/delete. |
+| `claim.id` | Used in the inform call to identify which claim the outcome belongs to |
+| `claim.status` | Determines processing path: `Ready` with no revision = drift detection; `Pending` with revision = revision-driven work |
+| `claim.desired-topic-configuration` | The config to compare against actual Kafka state for drift detection |
+| `claim.topic-definition.name` | The Kafka topic name to read or act on |
+| `claim.kafka-cluster.bootstrap-url` | Where to connect (must match instance config) |
+| `pending-revision.id` | Used in the inform call when reporting a revision outcome |
+| `pending-revision.status` | Determines operation: `PendingReconciliation` = create/update; `PendingDelete` = delete (with safety checks) |
+| `pending-revision.topic-configuration` | The config to apply when `PendingReconciliation` |
+
+**`pending-revision` is `null`** when the claim is `Ready` with no active revision — drift detection only.
 
 ### Inform Reconciliation Status
 
 ```
-PUT /api/v0/clusters/:cluster-name/inform-reconciliation-status/:revision-id
+PUT /api/v0/clusters/:cluster-name/inform-reconciliation-status
 ```
 
-Gregor Samsa reports one of four outcomes:
+Gregor Samsa reports all revision outcomes from the current poll batch in a single call. **Drift corrections are not included** — they are handled locally by Gregor Samsa (logged + metric emitted).
 
-#### Topic Created
+#### Request Body
 
 ```json
 {
+    "reconciliations": [
+        {
+            "claim-id": "550e8400-e29b-41d4-a716-446655440001",
+            "revision-id": "770e8400-e29b-41d4-a716-446655440002",
+            "outcome": "created",
+            "last-topic-configuration": {
+                "retention-ms": 86400000,
+                "partitions": 3,
+                "replication-factor": 3,
+                "configs": {
+                    "cleanup.policy": "delete"
+                }
+            }
+        }
+    ]
+}
+```
+
+#### Outcome Examples
+
+**Topic created:**
+```json
+{
+    "claim-id": "...",
+    "revision-id": "...",
     "outcome": "created",
-    "last-topic-configuration": {
-        "retention-ms": 604800000,
-        "partitions": 6,
-        "replication-factor": 3,
-        "configs": {
-            "cleanup.policy": "delete",
-            "compression.type": "lz4"
-        }
-    }
+    "last-topic-configuration": { "partitions": 3, "replication-factor": 3, "retention-ms": 86400000, "configs": {} }
 }
 ```
 
-#### Topic Updated
-
+**Topic updated:**
 ```json
 {
+    "claim-id": "...",
+    "revision-id": "...",
     "outcome": "updated",
-    "last-topic-configuration": {
-        "retention-ms": 604800000,
-        "partitions": 6,
-        "replication-factor": 3,
-        "configs": {
-            "cleanup.policy": "delete",
-            "compression.type": "lz4"
-        }
-    }
+    "last-topic-configuration": { "partitions": 6, "replication-factor": 3, "retention-ms": 604800000, "configs": {} }
 }
 ```
 
-#### Topic Deleted
-
+**Topic deleted:**
 ```json
 {
+    "claim-id": "...",
+    "revision-id": "...",
     "outcome": "deleted"
 }
 ```
 
-No `last-topic-configuration` is needed since the topic no longer exists.
-
-#### Error
-
+**Error:**
 ```json
 {
+    "claim-id": "...",
+    "revision-id": "...",
     "outcome": "error",
     "error": "failed to connect to broker at broker-1:9092: connection refused"
 }
 ```
 
-Error with partial configuration (Gregor Samsa read the current state before failing):
+Error with partial config read:
 ```json
 {
+    "claim-id": "...",
+    "revision-id": "...",
     "outcome": "error",
     "error": "cannot reduce partition count from 6 to 4",
-    "last-topic-configuration": {
-        "retention-ms": 604800000,
-        "partitions": 6,
-        "replication-factor": 3,
-        "configs": {
-            "cleanup.policy": "delete"
-        }
-    }
+    "last-topic-configuration": { "partitions": 6, "replication-factor": 3, "retention-ms": 604800000, "configs": {} }
 }
 ```
+
+**Valid outcomes per revision status:**
+
+| Revision Status | Valid `outcome` values |
+|---|---|
+| `PendingReconciliation` | `created`, `updated`, `error` |
+| `PendingDelete` | `deleted`, `error` |
 
 ### Retry Endpoints
 
@@ -242,9 +326,9 @@ Retries a single errored claim. Creates a new revision copying the intent from t
 
 **Preconditions:**
 - Claim must be in `Error` status.
-- Latest revision must be in `Error` status. If the latest revision is not in `Error` (e.g., already picked up), the request is rejected with `409`.
+- Latest revision must be in `Error` status. If not (e.g., already picked up), the request is rejected with `409`.
 
-**Response** `201`:
+**Response `201`:**
 ```json
 {
     "claim-id": "550e8400-e29b-41d4-a716-446655440000",
@@ -264,7 +348,7 @@ POST /api/v0/topics/:topic-name/retry
 
 Retries all errored claims for a topic across all clusters. Each claim is retried independently; partial success is possible.
 
-**Response** `200`:
+**Response `200`:**
 ```json
 {
     "topic-name": "user-events",
@@ -311,9 +395,44 @@ These transitions happen atomically in a single database transaction. Franz incr
 | Revision Status | Gregor Samsa Action | Valid Outcomes |
 |---|---|---|
 | `PendingReconciliation` | Create or update the topic | `created`, `updated`, `error` |
-| `PendingDelete` | Delete the topic | `deleted`, `error` |
+| `PendingDelete` | Safety check, then delete the topic | `deleted`, `error` |
 
 Gregor Samsa determines whether to create or update based on whether the topic already exists on the Kafka cluster. Franz does not distinguish between create and update at the revision level; the `PendingReconciliation` status covers both.
+
+---
+
+## Deletion Safety Checks
+
+Before Gregor Samsa attempts to delete a topic for a `PendingDelete` revision, it runs two safety checks using the Kafka AdminClient. If either check fails, Gregor Samsa does **not** attempt the delete and reports `outcome: error` instead.
+
+### Check 1 — Topic Has Data
+
+Use `AdminClient.listOffsets` with `OffsetSpec.EARLIEST` and `OffsetSpec.LATEST` for all partitions of the topic.
+
+If any partition has `log-start-offset < log-end-offset` → the topic contains unconsumed data → **fail**.
+
+### Check 2 — Topic Has Active Consumers
+
+Use `AdminClient.listConsumerGroups` to retrieve all consumer group IDs, then `AdminClient.listConsumerGroupOffsets` filtered to the topic being deleted.
+
+If any consumer group has a committed offset on any partition of the topic → **fail**. This check is intentionally conservative: a group that committed offsets and then went idle is still treated as an active consumer.
+
+### Failure Reporting
+
+```json
+{
+    "claim-id": "...",
+    "revision-id": "...",
+    "outcome": "error",
+    "error": "deletion safety check failed: topic has unconsumed data (partition 0: log-start-offset=0, log-end-offset=45201); topic has active consumers (groups: payment-consumer-group, audit-consumer-group)"
+}
+```
+
+Franz applies the standard `error` mapping: Revision → `Error`, Claim → `Error`. The `TopicDefinition` remains `Deleted` (user intent is unchanged). The operator must drain the topic and clean up consumer group offsets, then call the retry endpoint.
+
+### Idempotent Delete
+
+If the topic does not exist on Kafka (already deleted or never created), Gregor Samsa reports `outcome: deleted` without running safety checks. Deletion is idempotent.
 
 ---
 
@@ -353,6 +472,7 @@ The failed revision is preserved as a historical record. The `retry_of_revision_
 - **Transient errors** (connection timeouts, temporary broker unavailability): Gregor Samsa should report `error` and let the retry mechanism handle re-attempts.
 - **Permanent errors** (invalid config, topic already exists with incompatible settings): Gregor Samsa reports `error` with a descriptive message. The claim remains in `Error` until an operator intervenes.
 - **Partial application**: If Gregor Samsa successfully reads the current topic state but fails to apply changes, it should include `last-topic-configuration` in the error report so Franz has visibility into the actual state.
+- **Deletion safety check failures**: Reported as `error` with a structured message identifying which check failed (see [Deletion Safety Checks](#deletion-safety-checks)).
 
 ### Backoff Strategy
 
@@ -360,8 +480,8 @@ Gregor Samsa should implement exponential backoff on its poll interval when enco
 
 | Condition | Behaviour |
 |---|---|
-| Successful poll with revisions | Process immediately, reset backoff |
-| Successful poll with no revisions | Sleep for base poll interval |
+| Successful poll with claims to process | Process immediately, reset backoff |
+| Successful poll with no claims | Sleep for base poll interval |
 | Franz API unreachable | Exponential backoff (e.g., 5s, 10s, 20s, 40s, max 120s) |
 | Kafka cluster unreachable | Report error for all attempted revisions, exponential backoff before next poll |
 
@@ -375,13 +495,11 @@ Gregor Samsa should implement exponential backoff on its poll interval when enco
 
 ## Gregor Samsa Reconciliation Logic
 
-For each revision received in a poll response, Gregor Samsa executes:
-
 ### PendingReconciliation
 
 ```
 1. Extract topic name from claim.topic-definition.name
-2. Extract desired config from revision.topic-configuration
+2. Extract desired config from pending-revision.topic-configuration
 3. Connect to Kafka cluster via AdminClient
 4. Check if topic exists on the cluster
 5a. If topic does NOT exist:
@@ -404,22 +522,53 @@ For each revision received in a poll response, Gregor Samsa executes:
 1. Extract topic name from claim.topic-definition.name
 2. Connect to Kafka cluster via AdminClient
 3. Check if topic exists
-4a. If topic exists:
-      - Delete topic
-      - Inform Franz: outcome=deleted
-4b. If topic does NOT exist (already deleted or never created):
+4a. If topic does NOT exist:
       - Inform Franz: outcome=deleted (idempotent)
-5. On any failure:
+4b. If topic exists:
+      - Run safety checks:
+          a. Check for unconsumed data (listOffsets: earliest vs latest per partition)
+          b. Check for committed consumer group offsets (listConsumerGroupOffsets)
+      - If any check fails:
+          - Inform Franz: outcome=error, error="deletion safety check failed: <details>"
+      - If all checks pass:
+          - Delete topic
+          - Inform Franz: outcome=deleted
+5. On any unexpected failure:
       - Inform Franz: outcome=error, error=<message>
+```
+
+### Drift Detection
+
+```
+1. Extract topic name from claim.topic-definition.name
+2. Extract desired config from claim.desired-topic-configuration
+3. Connect to Kafka cluster via AdminClient
+4. Read actual topic config:
+      - describeTopics -> partition count, replication factor
+      - describeConfigs -> retention-ms and all config entries
+5. Compare actual vs desired:
+      - partitions, replication-factor, retention-ms, and all keys in configs map
+6a. If all values match:
+      - No action. Skip this claim. No outcome emitted.
+6b. If any value differs:
+      - Apply the desired config to Kafka
+      - Log the drift event: topic name, field that differed, old value, new value
+      - Emit metric: gregor_samsa_drift_corrections_total{cluster=..., topic=...}
+      - No inform call to Franz. Drift corrections are handled entirely by Gregor Samsa.
+7. On any failure during drift check or correction:
+      - Log the error
+      - Emit metric: gregor_samsa_drift_check_errors_total{cluster=..., topic=...}
+      - No inform call. Next poll cycle will retry automatically.
 ```
 
 ---
 
 ## Concurrency Model
 
-- Gregor Samsa processes revisions **sequentially within a single poll batch** for simplicity and to avoid race conditions on the same topic.
+- Gregor Samsa processes claims **sequentially within a single poll batch** for simplicity and to avoid race conditions on the same topic.
 - Multiple Gregor Samsa instances for different clusters run fully independently and in parallel.
 - Franz handles concurrent inform calls from different Gregor Samsa instances safely because each instance only touches revisions for its own cluster.
+- Gregor Samsa must check `claim.status` before processing any claim. If `claim.status` is `Paused`, the claim must be skipped entirely — neither revision work nor drift detection. Franz already excludes Paused claims from the poll response, but Gregor Samsa must guard against this defensively.
 
 ---
 
@@ -435,8 +584,8 @@ Combined view of all entity statuses and their meaning:
 | `Active` | *(no claims)* | *(none)* | Definition exists but no cluster matches its selectors |
 | `Error` | `Error` | `Error` | At least one claim failed reconciliation |
 | `Paused` | `Paused` | `Created` / `Updated` | Topic live on Kafka, definition and claims suspended |
-| `Paused` | `Paused` | `PendingReconciliation` / `PendingDelete` | Was in flight when paused -- Gregor Samsa should skip these |
+| `Paused` | `Paused` | `PendingReconciliation` / `PendingDelete` | Was in flight when paused — Gregor Samsa skips these |
 | `Paused` | `Paused` | `Error` | Failed before pausing, frozen in error state |
 | `Deleted` | `Pending` | `PendingDelete` | Deletion requested, topic removal in flight on Kafka |
 | `Deleted` | `Deleted` | `Deleted` | Topic successfully removed from Kafka |
-| `Deleted` | `Error` | `Error` | Deletion failed -- topic likely still exists on Kafka |
+| `Deleted` | `Error` | `Error` | Deletion failed — topic likely still exists on Kafka. Error message indicates whether cause was safety check failure (data present or active consumers) or an unexpected error. |
