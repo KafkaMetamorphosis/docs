@@ -6,27 +6,34 @@ Tracks what has been implemented in Franz against the documented spec. Updated a
 
 ## Overview
 
-| Feature | Pillar | Docs | Code | Date | Commit |
-|---|---|---|---|---|---|
-| Database schema | Central Registry | ✅ | ✅ | 2026-03-29 | `81bc779` |
-| Cluster CRUD | Central Registry | ✅ | ✅ | 2026-03-15 | `b0f7fe8` |
-| TopicConfiguration CRUD | Central Registry | ✅ | ✅ | 2026-03-22 | `35e8ba2` |
-| TopicDefinition CRUD + state machine | Central Registry | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
-| Labels as metadata on all entities | Central Registry | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
-| Topic Definition Expansion engine | Traffic Management | ✅ | ✅ | 2026-03-29 | `4f94066` |
-| Cluster migration flow | Traffic Management | ✅ | ❌ | — | — |
-| Gregor Samsa API (poll / inform / retry) | Reconciliation | ✅ | ❌ | — | — |
-| Claim management (update-config, migration) | Reconciliation | ✅ | ❌ | — | — |
-| Governance rules engine | Governance | ⚠️ EDN sketch only | ❌ | — | — |
-| Governance integration flow | Governance | ❌ | ❌ | — | — |
-| Resilience / noisy neighbor protection | Resilience | ❌ | ❌ | — | — |
-| Fleet observability / reporting API | Operation Burden | ❌ | ❌ | — | — |
-| Label-driven automation | Operation Burden | ❌ | ❌ | — | — |
-| Cost efficiency / right-sizing rules | Cost Efficiency | ⚠️ examples only | ❌ | — | — |
-| Tiered storage integration | Cost Efficiency | ❌ | ❌ | — | — |
-| ACL management | Central Registry | ❌ | ❌ | — | — |
-| Gregor Samsa service | Reconciliation | ✅ | ❌ | — | — |
-| Operations / deployment guide | Operation Burden | ✅ | — | — | — |
+| Feature | Pillar | Project | Docs | Code | Date | Commit |
+|---|---|---|---|---|---|---|
+| Database schema | Central Registry | Franz | ✅ | ✅ | 2026-03-29 | `81bc779` |
+| Cluster CRUD | Central Registry | Franz | ✅ | ✅ | 2026-03-15 | `b0f7fe8` |
+| TopicConfiguration CRUD | Central Registry | Franz | ✅ | ✅ | 2026-03-22 | `35e8ba2` |
+| TopicDefinition CRUD + state machine | Central Registry | Franz | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
+| Labels as metadata on all entities | Central Registry | Franz | ✅ | ✅ | 2026-03-29 | `7a28d4e` |
+| Topic Definition Expansion engine | Traffic Management | Franz | ✅ | ✅ | 2026-03-29 | `4f94066` |
+| Cluster migration flow | Traffic Management | Franz | ✅ | ❌ | — | — |
+| Gregor Samsa API — poll (all active claims) | Reconciliation | Franz | ✅ | ❌ | — | — |
+| Gregor Samsa API — batch inform | Reconciliation | Franz | ✅ | ❌ | — | — |
+| Gregor Samsa API — retry (claim + topic) | Reconciliation | Franz | ✅ | ❌ | — | — |
+| Claim management — update-config | Reconciliation | Franz | ✅ | ❌ | — | — |
+| Claim management — cluster-migration | Reconciliation | Franz | ✅ | ❌ | — | — |
+| Claim management — delete claim | Reconciliation | Franz | ✅ | ❌ | — | — |
+| Gregor Samsa — reconciliation loop | Reconciliation | Gregor Samsa | ✅ | ❌ | — | — |
+| Gregor Samsa — drift detection | Reconciliation | Gregor Samsa | ✅ | ❌ | — | — |
+| Gregor Samsa — deletion safety checks | Reconciliation | Gregor Samsa | ✅ | ❌ | — | — |
+| Gregor Samsa — drift metrics | Reconciliation | Gregor Samsa | ✅ | ❌ | — | — |
+| Governance rules engine | Governance | Franz | ⚠️ EDN sketch only | ❌ | — | — |
+| Governance integration flow | Governance | Franz + Gregor Samsa | ❌ | ❌ | — | — |
+| Resilience / noisy neighbor protection | Resilience | Franz | ❌ | ❌ | — | — |
+| Fleet observability / reporting API | Operation Burden | Franz | ❌ | ❌ | — | — |
+| Label-driven automation | Operation Burden | Franz | ❌ | ❌ | — | — |
+| Cost efficiency / right-sizing rules | Cost Efficiency | Franz | ⚠️ examples only | ❌ | — | — |
+| Tiered storage integration | Cost Efficiency | Franz + Gregor Samsa | ❌ | ❌ | — | — |
+| ACL management | Central Registry | Franz | ❌ | ❌ | — | — |
+| Operations / deployment guide | Operation Burden | — | ✅ | — | — | — |
 
 ---
 
@@ -142,17 +149,17 @@ Spec: [003-franz/003.4-topic-cluster-selection.md](./003-franz/003.4-topic-clust
 
 ---
 
-### Gregor Samsa API
-The reconciler-facing endpoints. Gregor Samsa polls for pending revisions and reports outcomes.
+### Gregor Samsa API (Franz side)
+The reconciler-facing endpoints Franz exposes. Gregor Samsa polls for all active claims and reports outcomes in batch.
 
-| Method | Path |
-|---|---|
-| `GET` | `/api/v0/clusters/:cluster-name/poll-pending-reconciliations` |
-| `PUT` | `/api/v0/clusters/:cluster-name/inform-reconciliation-status/:revision-id` |
-| `POST` | `/api/v0/clusters/:cluster-name/claims/:claim-id/retry` |
-| `POST` | `/api/v0/topics/:topic-name/retry` |
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/v0/clusters/:cluster-name/poll-pending-reconciliations` | Returns all active claims with `desired-topic-configuration` and optional `pending-revision` |
+| `PUT` | `/api/v0/clusters/:cluster-name/inform-reconciliation-status` | Batch outcome report — one call per poll cycle |
+| `POST` | `/api/v0/clusters/:cluster-name/claims/:claim-id/retry` | Retry a single errored claim |
+| `POST` | `/api/v0/topics/:topic-name/retry` | Retry all errored claims for a topic across all clusters |
 
-Inform contract: Gregor Samsa reports `outcome: created | updated | deleted | error`. Franz derives all state transitions internally.
+Inform contract: Gregor Samsa reports `outcome: created | updated | deleted | error` per revision. Franz derives all state transitions internally.
 
 Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md)
 
@@ -161,10 +168,11 @@ Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | [004-
 ### Claim Management Endpoints
 User-facing endpoints for modifying existing claims.
 
-| Method | Path |
-|---|---|
-| `PUT` | `/api/v0/clusters/:cluster-name/claims/:claim-id/update-config` |
-| `PUT` | `/api/v0/clusters/:cluster-name/claims/:claim-id/cluster-migration` |
+| Method | Path | Notes |
+|---|---|---|
+| `PUT` | `/api/v0/clusters/:cluster-name/claims/:claim-id/update-config` | Attach or replace per-claim config override |
+| `PUT` | `/api/v0/clusters/:cluster-name/claims/:claim-id/cluster-migration` | Migrate claim to a different cluster |
+| `DELETE` | `/api/v0/clusters/:cluster-name/claims/:claim-id` | Delete claim; creates PendingDelete revision |
 
 Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | [003-franz/003.7-claim-management.md](./003-franz/003.7-claim-management.md)
 
@@ -180,5 +188,11 @@ Spec: [003-franz/003.5-governance.md](./003-franz/003.5-governance.md)
 ## Gregor Samsa (Reconciler Service)
 
 Not started. Separate service from Franz.
+
+Features to implement:
+- **Reconciliation loop** — polls Franz, processes revisions (create/update/delete), sends batch inform
+- **Drift detection** — compares actual Kafka config vs `desired-topic-configuration`; corrects divergence locally (no inform call to Franz)
+- **Deletion safety checks** — verifies topic has no data and no active consumers before executing `PendingDelete`
+- **Drift metrics** — emits `gregor_samsa_drift_corrections_total` labelled by cluster and topic
 
 Spec: [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md) | [005-operations/005.0-overview.md](./005-operations/005.0-overview.md)
