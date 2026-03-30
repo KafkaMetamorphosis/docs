@@ -32,4 +32,12 @@ Gregor Samsa runs as a sidecar or agent scoped to a single Kafka cluster. It rea
 | [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | TopicClaim and TopicRevision — state machines, reconciliation API, retry, outcome mapping. |
 | [003-franz/003.4-topic-cluster-selection.md](./003-franz/003.4-topic-cluster-selection.md) | Topic Definition Expansion — taint/toleration, affinity, shard-size, scheduling pipeline. |
 | [003-franz/003.5-governance.md](./003-franz/003.5-governance.md) | Governance rules — EDN config controlling topic and cluster create/update behaviour. |
-| [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md) | Gregor Samsa reconciliation loop. |
+| [003-franz/003.6-expansion-engine.md](./003-franz/003.6-expansion-engine.md) | Topic Definition Expansion engine — scheduling pipeline, taint/toleration, affinity, shard-size, config materialisation. |
+| [003-franz/003.7-claim-management.md](./003-franz/003.7-claim-management.md) | Claim management endpoints — update-config, cluster migration (spec, not yet implemented). |
+| [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md) | Gregor Samsa reconciliation loop — full service spec, poll/inform contract, retry, error handling. |
+
+### Operations
+
+| Document | Description |
+|---|---|
+| [005-operations/005.0-overview.md](./005-operations/005.0-overview.md) | Deployment, configuration, observability, and operational procedures. |
