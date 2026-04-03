@@ -34,6 +34,7 @@ Tracks what has been implemented in Franz against the documented spec. Updated a
 | Tiered storage integration | Cost Efficiency | Franz + Gregor Samsa | ❌ | ❌ | — | — |
 | ACL management | Central Registry | Franz | ❌ | ❌ | — | — |
 | Operations / deployment guide | Operation Burden | — | ✅ | — | — | — |
+| Odradek — Kafka SLO metrics exporter | Observability | Odradek | ✅ | ✅ | 2026-04-03 | — |
 
 ---
 

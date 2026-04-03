@@ -15,13 +15,16 @@ Given the configuration, odradek will produce/consume messages with a given volu
             "name": "small-messages-small-topic",
             "clusters": ["local-1"],
             "topic": "SMALL-TOPIC",
+            "parallelism": 1,
+            "messages-per-bucket": 10,
             "message-size-kb": 100,
-            "messages-per-sec": 20,
             "producer-config": {
                 "acks": "all",
                 "linger.ms": 0,
                 "retries": 3,
-                "max.block.ms": 5000
+                "max.block.ms": 5000,
+                "delivery.timeout.ms": 5000,
+                "request.timeout.ms": 1500
             },
             "consumer-config": {
                 "max.poll.interval.ms": 30000,
@@ -38,13 +41,14 @@ Given the configuration, odradek will produce/consume messages with a given volu
             "clusters": ["local-1"],
             "topic": "BIG-TOPIC",
             "message-size-kb": 100,
-            "messages-per-sec": 20,
+            "parallelism": 5,
+            "messages-per-bucket": 100,
             "producer-config": {
                 "acks": "all",
                 "linger.ms": 0,
                 "retries": 3,
                 "delivery.timeout.ms": 5000,
-                "request.timeout.ms": 15000
+                "request.timeout.ms": 1500
             },
             "consumer-config": {
                 "max.poll.interval.ms": 30000,
@@ -60,13 +64,14 @@ Given the configuration, odradek will produce/consume messages with a given volu
             "clusters": ["local-1"],
             "topic": "BIG-TOPIC-LARGE-MESSAGES",
             "message-size-kb": 9216,
-            "messages-per-sec": 10,
+            "parallelism": 1,
+            "messages-per-bucket": 50,
             "producer-config": {
                 "acks": "all",
                 "linger.ms": 0,
                 "retries": 3,
                 "delivery.timeout.ms": 5000,
-                "request.timeout.ms": 15000
+                "request.timeout.ms": 1500
             },
             "consumer-config": {
                 "max.poll.interval.ms": 30000,
@@ -78,6 +83,9 @@ Given the configuration, odradek will produce/consume messages with a given volu
             }
         }
     ],
+    "producer-engine": {
+        "rate-interval-ms": 100
+    },
     "kafka_clusters": {
         "local-1": {
             "bootstrap-url": "localhost:9092"
@@ -90,12 +98,14 @@ Given the configuration, odradek will produce/consume messages with a given volu
 
 - The consumer runs its own independent loop — it is not triggered by the producer.
 - It reads messages from the same topic the producer writes to.
-- The consumer group ID is derived from the observer name uppercased (e.g. observer `small-messages-small-topic` → group `SMALL-MESSAGES-SMALL-TOPIC`).
+- The consumer group ID is derived from the observer name uppercased (e.g. observer `small-messages-small-topic` → group `SMALL-MESSAGES-SMALL-TOPIC`), but can be overriden by the consumer config.
 - The consumer always starts from the **latest offset** — it never replays existing messages.
 
 ### Topic Lifecycle
 
 Odradek does **not** create topics. If the topic configured in an observer does not exist on the cluster, the producer will report an error via `kafka_odradek_messages_production_error_total`. The topic must be created beforehand — either manually or through Franz.
+
+It is recomended the topic have the configuration in terms of partition similar to what you want to check the performance. The retention could be small, as historical messages are not used. So 10 minutes of retention is more then enough.
 
 ## High level architecture
 ```mermaid
@@ -110,7 +120,7 @@ graph TD
 
     subgraph Odradek["Odradek Runtime"]
         ObserverLoop["Producer Loop<br>one per observer × cluster"]
-        Producer["Producer<br>message-size-kb, configured-messages-per-sec"]
+        Producer["Producer<br>message-size-kb, configured-rate"]
         Consumer["Consumer Loop<br>reads own produced messages"]
         Metrics["Metrics Registry"]
     end
@@ -129,18 +139,18 @@ graph TD
 
 |Metric|Labels|Description
 |---|---|---|
-|`kafka_odradek_messages_produced_total`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_messages_per_sec`|Total of messages produced by configured observer and clusters|
-|`kafka_odradek_messages_production_latency_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_messages_per_sec`|Production latency ms in histogram bucket|
-|`kafka_odradek_messages_production_error_total`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_messages_per_sec`|Total of errors when producing messages. Incremented when the topic does not exist or the broker is unreachable.|
-|`kafka_odradek_messages_consumed_total`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_messages_per_sec`|Total of messages consumed by configured observer and clusters|
-|`kafka_odradek_messages_consumption_error_total`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_messages_per_sec`|Total of errors when consuming messages|
-|`kafka_odradek_messages_consumption_latency_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_messages_per_sec`|Consumption fetch latency ms in histogram bucket|
-|`kafka_odradek_e2e_message_age_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_messages_per_sec`|Messages age once it reaches the consumer|
-|`kafka_odradek_full_e2e_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_messages_per_sec`|Time from the production until the message is commited by the consumer|
+|`kafka_odradek_messages_produced_total`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Total of messages produced by configured observer and clusters|
+|`kafka_odradek_messages_production_latency_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Production latency ms in histogram bucket|
+|`kafka_odradek_messages_production_error_total`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Total of errors when producing messages. Incremented when the topic does not exist or the broker is unreachable.|
+|`kafka_odradek_messages_fetched_total`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Total of messages fetched by configured observer and clusters|
+|`kafka_odradek_messages_fetch_error_total`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Total of errors when consuming messages|
+|`kafka_odradek_messages_fetch_latency_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Consumption fetch latency ms in histogram bucket, once message reach consumer|
+|`kafka_odradek_e2e_message_age_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Messages age once it reaches the consumer|
+|`kafka_odradek_full_e2e_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Time from the production until the message is commited by the consumer|
 
 ### Histogram Bucket Boundaries
 
-Both `production_latency_ms` and `consumption_latency_ms` histograms use the following default bucket boundaries (in milliseconds):
+All histograms (`production_latency_ms`, `fetch_latency_ms`, `e2e_message_age_ms`, `full_e2e_ms`) use the following bucket boundaries (in milliseconds):
 
 ```
 [5, 10, 15, 25, 30, 40, 50, 80, 100, 250, 300, 500, 800, 1000, 1500, 2000, 3000, 4000, 5000, 10000, 15000, 20000, 25000, 30000]
@@ -149,12 +159,6 @@ Both `production_latency_ms` and `consumption_latency_ms` histograms use the fol
 ### Producer Configuration
 
 Producer configuration is intentionally exposed in the config and must be provided explicitly. There are no defaults assumed — the operator owns these values.
-
-| Field | Description |
-|---|---|
-| `acks` | Acknowledgment level. Use `"all"` to measure the full replication path (SLO-relevant). `"1"` measures only leader write. `"0"` is fire-and-forget with no latency signal. |
-| `linger-ms` | How long the producer waits to batch messages before sending. Set to `0` for immediate send — Odradek measures per-message latency, not throughput. |
-| `max-block-ms` | How long the producer blocks if the topic does not exist or the buffer is full before throwing. Keep low (e.g. `5000`) so a missing topic fails fast instead of hanging the loop. |
 
 ## Endpoints
 
