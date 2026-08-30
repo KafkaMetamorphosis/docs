@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>billing-events | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Async Channels</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link active" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="async-channels.html">Async Channels</a><span>/</span> billing-events</div>
+        <div class="page-heading"><div><h1>billing-events</h1><p class="lead"><code>kafka-topic</code> Async Channel <span class="status">Active</span><small class="resource-id">orn:acme-platform:async-channel:billing-events</small></p></div><div><a class="button" href="#channel-details">Edit channel</a> <a class="button danger" href="#pause-channel">Pause channel</a></div></div>
+        <section class="panel" id="channel-details" aria-labelledby="channel-details-title">
+          <div class="panel-header"><div><h2 id="channel-details-title">Channel details</h2><p class="panel-note">The channel declares the intent; Franz creates and maintains its generated Kafka Topics.</p></div></div>
+          <div class="panel-body"><div class="stats" style="margin-bottom:0">
+            <div class="stat"><div class="stat-label">Channel type</div><div class="stat-value" style="font-size:20px"><code>kafka-topic</code></div><div class="stat-foot">Current supported type</div></div>
+            <div class="stat"><div class="stat-label">Channel partitions</div><div class="stat-value">3</div><div class="stat-foot">Generated Kafka Topics</div></div>
+            <div class="stat"><div class="stat-label">Lifecycle</div><div class="stat-value" style="font-size:20px"><span class="status">Active</span></div><div class="stat-foot">Automation is enabled</div></div>
+            <div class="stat"><div class="stat-label">Latest signal</div><div class="stat-value" style="font-size:20px">Accepted</div><div class="stat-foot">8 minutes ago</div></div>
+          </div></div>
+        </section>
+        <section class="panel" aria-labelledby="context-title">
+          <div class="panel-header"><div><h2 id="context-title">Placement context</h2><p class="panel-note">One label-based context is declared for this channel.</p></div></div>
+          <div class="panel-body"><span class="tag">org.com/env=prod</span><span class="tag">org.com/country=br</span><span class="tag">org.com/shard=s8</span><p class="field-note">Readable context: <strong>br-prod-s8</strong>. Franz uses this selector to find eligible cluster locations.</p></div>
+        </section>
+        <section class="panel" id="access-policy" aria-labelledby="access-policy-title">
+          <div class="panel-header"><div><h2 id="access-policy-title">Access policy</h2><p class="panel-note">One policy document per channel, in the style of an S3 bucket policy. Zero trust: a client gets no access unless a statement matches its ORN or its labels.</p></div><a class="button" href="#access-policy">Edit policy</a></div>
+          <div class="table-wrap"><table><thead><tr><th>Principal</th><th>Grants</th></tr></thead><tbody>
+            <tr><td>ORN <code>orn:acme-platform:client:billing-ingestor</code></td><td><span class="tag">Write</span></td></tr>
+            <tr><td>Labels <span class="tag">org.com/team=settlement</span></td><td><span class="tag">Read</span></td></tr>
+            <tr><td>Labels <span class="tag">org.com/owner=data-platform</span></td><td><span class="tag">Read</span></td></tr>
+          </tbody></table></div>
+          <div class="panel-body">
+            <div class="code-box">{:channel "orn:acme-platform:async-channel:billing-events"
+ :statements
+ [{:principal {:orn "orn:acme-platform:client:billing-ingestor"} :allow [:write]}
+  {:principal {:labels "org.com/team=settlement"}                :allow [:read]}
+  {:principal {:labels "org.com/owner=data-platform"}            :allow [:read]}]}</div>
+            <p class="field-note">A statement may match by ORN, by labels (<code>=</code> and <code>IN (…)</code>), or both. <code>:allow</code> is one or more of <code>:read</code> <code>:write</code>.</p>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="clients-title">
+          <div class="panel-header"><div><h2 id="clients-title">Clients with access</h2><p class="panel-note">Registered clients that currently match a statement above.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Client</th><th>Owner</th><th>Effective permission</th><th>Matched by</th></tr></thead><tbody>
+            <tr><td><a href="client-detail.html">billing-ingestor</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Write</span></td><td>ORN</td></tr>
+            <tr><td><a href="client-detail.html">billing-settlement-worker</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Read</span></td><td>labels <code>org.com/team=settlement</code></td></tr>
+            <tr><td><a href="client-detail.html">analytics-loader</a></td><td><span class="tag">org.com/owner=data-platform</span></td><td><span class="tag">Read</span></td><td>labels <code>org.com/owner=data-platform</code></td></tr>
+          </tbody></table></div>
+        </section>
+        <section class="panel" aria-labelledby="discovery-title">
+          <div class="panel-header"><div><h2 id="discovery-title">Discovery and SDK usage</h2><p class="panel-note">The Franz SDK is the only supported way for a service to discover and use this Async Channel.</p></div></div>
+          <div class="panel-body">
+            <p>Initialise the SDK with the channel ORN and the client ORN, and provide the client's Franz token through an environment variable. Franz evaluates this channel's access policy against the client before allowing publish or subscribe; the SDK then resolves the channel's current Kafka location.</p>
+            <div class="code-box">export FRANZ_TOKEN=&lt;your-franz-access-token&gt;</div>
+            <div class="sdk-tabs" role="tablist" aria-label="SDK language examples">
+              <button class="sdk-tab" id="java-tab" type="button" role="tab" aria-selected="true" aria-controls="java-example">Java</button>
+              <button class="sdk-tab" id="go-tab" type="button" role="tab" aria-selected="false" aria-controls="go-example" tabindex="-1">Go</button>
+            </div>
+            <div class="sdk-code" id="java-example" role="tabpanel" aria-labelledby="java-tab"><div class="code-box">// Illustrative Franz SDK API
+var channel = FranzAsyncClient.builder()
+    .channelOrn(&quot;orn:acme-platform:async-channel:billing-events&quot;)
+    .clientOrn(&quot;orn:acme-platform:client:billing-ingestor&quot;)
+    .token(System.getenv(&quot;FRANZ_TOKEN&quot;))
+    .build();
+
+channel.publish(event);</div></div>
+            <div class="sdk-code" id="go-example" role="tabpanel" aria-labelledby="go-tab" hidden><div class="code-box">// Illustrative Franz SDK API
+channel, err := franz.New(franz.Config{
+    ChannelORN: &quot;orn:acme-platform:async-channel:billing-events&quot;,
+    ClientORN:  &quot;orn:acme-platform:client:billing-ingestor&quot;,
+    Token:      os.Getenv(&quot;FRANZ_TOKEN&quot;),
+})
+if err != nil { return err }
+
+return channel.Publish(ctx, event)</div></div>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="topics-title">
+          <div class="panel-header"><div><h2 id="topics-title">Generated Kafka Topics</h2><p class="panel-note">Each channel partition is a Kafka Topic. <strong>Traffic share</strong> is the portion of channel traffic written to each topic over the last 24 hours. Disabling consumption drains a topic — producers stop writing to it and its share drops to 0% — while the topic and its data are kept.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Topic</th><th>Kafka configuration overview</th><th>Location</th><th>Traffic share</th><th>Control-plane status</th><th>Consumption</th><th aria-label="Actions"></th></tr></thead><tbody>
+            <tr data-topic="p0"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p0</code></a><small class="resource-id">orn:acme-platform:kafka-topic:franz.billing-events.v1-p0</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-01">br-prod-s8-kafka-01</a><br><span class="tag">br-prod-s8</span></td><td>53%</td><td><span class="status">Ready</span></td><td><span class="status">Consuming</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Disable consumption</button></td></tr>
+            <tr data-topic="p1"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p1</code></a><small class="resource-id">orn:acme-platform:kafka-topic:franz.billing-events.v1-p1</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-02">br-prod-s8-kafka-02</a><br><span class="tag">br-prod-s8</span></td><td>47%</td><td><span class="status">Ready</span></td><td><span class="status">Consuming</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Disable consumption</button></td></tr>
+            <tr data-topic="p2"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p2</code></a><small class="resource-id">orn:acme-platform:kafka-topic:franz.billing-events.v1-p2</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-03">br-prod-s8-kafka-03</a><br><span class="tag">br-prod-s8</span></td><td data-prior-share="15%">0%</td><td><span class="status pending">Pending reconciliation</span></td><td><span class="status paused">Consumption disabled</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Enable consumption</button></td></tr>
+          </tbody></table></div>
+        </section>
+        <section class="panel" id="pause-channel" aria-labelledby="lifecycle-title">
+          <div class="panel-header"><div><h2 id="lifecycle-title">Lifecycle</h2><p class="panel-note">Pausing preserves the declared channel and its topics, but stops Franz from automatically maintaining them.</p></div><a class="button danger" href="#pause-channel">Pause channel</a></div>
+        </section>
+      </main>
+    </div>
+    <script>
+      const sdkTabs = document.querySelectorAll('.sdk-tab');
+      const sdkPanels = document.querySelectorAll('.sdk-code');
+      sdkTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          sdkTabs.forEach((item) => {
+            const isSelected = item === tab;
+            item.setAttribute('aria-selected', isSelected);
+            item.tabIndex = isSelected ? 0 : -1;
+          });
+          sdkPanels.forEach((panel) => {
+            panel.hidden = panel.id !== tab.getAttribute('aria-controls');
+          });
+        });
+      });
+
+      document.querySelectorAll('[data-action="toggle-consumption"]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const row = button.closest('tr');
+          const consumptionStatus = row.querySelector('td:nth-child(6) .status');
+          const shareCell = row.querySelector('td:nth-child(4)');
+          const disable = !consumptionStatus.classList.contains('paused');
+          consumptionStatus.classList.toggle('paused', disable);
+          consumptionStatus.textContent = disable ? 'Consumption disabled' : 'Consuming';
+          button.textContent = disable ? 'Enable consumption' : 'Disable consumption';
+          if (disable) {
+            shareCell.dataset.priorShare = shareCell.textContent;
+            shareCell.textContent = '0%';
+          } else {
+            shareCell.textContent = shareCell.dataset.priorShare || shareCell.textContent;
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

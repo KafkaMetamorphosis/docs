@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agents | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Agents</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link active" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> Agents</div>
+        <div class="page-heading"><div><h1>Agents</h1><p class="lead">Systems registered with Franz that connect to the fleet API over gRPC and act on the values it returns.</p></div><a class="button primary" href="register-agent.html">Register Agent</a></div>
+        <section class="panel" aria-labelledby="agent-list-title">
+          <div class="toolbar"><input class="filter" type="search" aria-label="Find Agents" placeholder="Find Agents"><span class="panel-note">12 registered agents</span></div>
+          <div class="table-wrap"><table><thead><tr><th id="agent-list-title">Agent name</th><th>Type</th><th>Fleet API endpoint</th><th>Context selector</th><th>Status</th></tr></thead><tbody>
+            <tr id="br-prod-msk"><td><a href="#br-prod-msk">br-prod-msk</a><small class="resource-id">orn:acme-platform:agent:br-prod-msk</small></td><td>Cluster Provider</td><td><code>agent-sa-east-1.internal:8443</code></td><td><code>org.com/env=prod, org.com/country=br</code></td><td><span class="status">Connected</span></td></tr>
+            <tr id="br-prod-strimzi"><td><a href="#br-prod-strimzi">br-prod-strimzi</a><small class="resource-id">orn:acme-platform:agent:br-prod-strimzi</small></td><td>Cluster Provider</td><td><code>agent-k8s-br.internal:8443</code></td><td><code>org.com/env=prod, org.com/country=br, org.com/platform=k8s</code></td><td><span class="status">Connected</span></td></tr>
+            <tr id="local-docker"><td><a href="#local-docker">local-docker</a><small class="resource-id">orn:acme-platform:agent:local-docker</small></td><td>Cluster Provider</td><td><code>agent-local.internal:8443</code></td><td><code>org.com/env=staging</code></td><td><span class="status">Connected</span></td></tr>
+            <tr id="gregor-samsa-br-prod"><td><a href="#gregor-samsa-br-prod">gregor-samsa-br-prod</a><small class="resource-id">orn:acme-platform:agent:gregor-samsa-br-prod</small></td><td>Resource Provider</td><td><code>agent-sa-east-1.internal:8443</code></td><td><code>org.com/env=prod, org.com/country=br</code></td><td><span class="status">Connected</span></td></tr>
+            <tr id="gregor-samsa-us-prod"><td><a href="#gregor-samsa-us-prod">gregor-samsa-us-prod</a><small class="resource-id">orn:acme-platform:agent:gregor-samsa-us-prod</small></td><td>Resource Provider</td><td><code>agent-us-east-1.internal:8443</code></td><td><code>org.com/env=prod, org.com/country IN (us, mx, co)</code></td><td><span class="status">Connected</span></td></tr>
+            <tr id="sqs-bridge-us"><td><a href="#sqs-bridge-us">sqs-bridge-us</a><small class="resource-id">orn:acme-platform:agent:sqs-bridge-us</small></td><td>Resource Provider</td><td><code>agent-us-east-1.internal:8443</code></td><td><code>org.com/env=prod, org.com/country=us</code></td><td><span class="status pending">Awaiting first contact</span></td></tr>
+            <tr id="kafka-telemetry-br"><td><a href="#kafka-telemetry-br">kafka-telemetry-br</a><small class="resource-id">orn:acme-platform:agent:kafka-telemetry-br</small></td><td>Telemetry Agent</td><td><code>agent-sa-east-1.internal:8443</code></td><td><code>org.com/env=prod, org.com/country=br</code></td><td><span class="status">Connected</span></td></tr>
+            <tr id="kafka-telemetry-us"><td><a href="#kafka-telemetry-us">kafka-telemetry-us</a><small class="resource-id">orn:acme-platform:agent:kafka-telemetry-us</small></td><td>Telemetry Agent</td><td><code>agent-us-east-1.internal:8443</code></td><td><code>org.com/env=prod, org.com/country IN (us, mx, co)</code></td><td><span class="status">Connected</span></td></tr>
+            <tr id="broker-metrics-collector"><td><a href="#broker-metrics-collector">broker-metrics-collector</a><small class="resource-id">orn:acme-platform:agent:broker-metrics-collector</small></td><td>Telemetry Agent</td><td><code>agent-mon.internal:8443</code></td><td><code>org.com/env=prod</code></td><td><span class="status pending">Stale — no data 46m</span></td></tr>
+            <tr id="fleet-audit-exporter"><td><a href="#fleet-audit-exporter">fleet-audit-exporter</a><small class="resource-id">orn:acme-platform:agent:fleet-audit-exporter</small></td><td>Custom</td><td><code>agent-mon.internal:8443</code></td><td><code>* (all resources)</code></td><td><span class="status">Connected</span></td></tr>
+          </tbody></table></div>
+          <nav class="pagination" aria-label="Agent pagination"><span class="pagination-summary">Showing 1–10 of 12</span><span aria-hidden="true">‹</span><span class="current" aria-current="page">1</span><a href="#page-2" aria-label="Page 2">2</a><a href="#page-2" aria-label="Next page">›</a></nav>
+        </section>
+        <section class="panel" aria-labelledby="agent-types-title">
+          <div class="panel-header"><div><h2 id="agent-types-title">Agent types</h2><p class="panel-note">Type is an organisational filter. Every agent connects to the fleet API the same way.</p></div></div>
+          <div class="panel-body"><div class="table-wrap"><table><thead><tr><th>Type</th><th>Responsibility</th><th>Examples</th></tr></thead><tbody>
+            <tr><td>Cluster Provider</td><td>Deploys and maintains the substrate that hosts a fleet resource — Kafka clusters, RabbitMQ, and similar.</td><td><code>br-prod-msk</code>, <code>br-prod-strimzi</code>, <code>local-docker</code></td></tr>
+            <tr><td>Resource Provider</td><td>Realises the individual resources on a substrate — Kafka topics, RabbitMQ queues, SQS queues. Gregor Samsa is a Resource Provider for Kafka topics.</td><td><code>gregor-samsa-br-prod</code>, <code>sqs-bridge-us</code></td></tr>
+            <tr><td>Telemetry Agent</td><td>Publishes indicator data to Franz following the telemetry protocol. Governance policies read these indicators.</td><td><code>kafka-telemetry-br</code>, <code>broker-metrics-collector</code></td></tr>
+            <tr><td>Custom</td><td>Any other program that reads from or acts on fleet data through the API.</td><td><code>fleet-audit-exporter</code></td></tr>
+          </tbody></table></div></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

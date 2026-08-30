@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register Client | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Clients</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link active" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="clients.html">Clients</a><span>/</span> Register Client</div>
+        <div class="page-heading"><div><h1>Register Client</h1><p class="lead">Record an identity that will connect to Async Channels. Permissions are granted later by each channel's access policy.</p></div></div>
+        <section class="panel" aria-labelledby="client-registration-title">
+          <div class="panel-header"><div><h2 id="client-registration-title">Client details</h2><p class="panel-note">A client has a name and labels. It has no Read or Write role — that comes from the channels it is granted access to.</p></div></div>
+          <div class="panel-body form-layout"><form id="client-registration-form" action="clients.html">
+            <div class="form-section"><h3>Identity</h3><p class="form-help">The client authenticates with this identity through the Franz SDK.</p>
+              <div class="field"><label for="client-name">Client name <small>Globally unique. Used as the ORN and as the default consumer-group prefix.</small></label><div><input id="client-name" required placeholder="billing-settlement-worker"><p class="field-note">ORN: <code>orn:acme-platform:client:&lt;name&gt;</code></p></div></div>
+            </div>
+            <div class="form-section"><h3>Labels</h3><p class="form-help">Labels identify the client — its owner, team, environment — and are what channel access policies match against.</p>
+              <div class="field"><label>Labels <small>At least the owner. Enter a key and a value for each.</small></label><div>
+                <div class="label-builder" aria-label="Client labels">
+                  <div class="label-builder-controls"><input id="client-label-key" aria-label="Label key" value="org.com/owner"><input id="client-label-value" aria-label="Label value" placeholder="payments-team"><button class="button" id="add-client-label" type="button">Add label</button></div>
+                  <div class="label-tags" id="client-label-tags" aria-live="polite"></div>
+                </div>
+                <input id="client-labels" name="client-labels" type="hidden">
+                <p class="field-note" id="client-label-status">Add at least an <code>org.com/owner</code> label.</p>
+              </div></div>
+            </div>
+            <div class="form-section"><h3>Consumer groups</h3><div class="code-box">Consumer groups are not registered here.
+When the client subscribes to a channel it uses the group &lt;client-name&gt;.&lt;topic&gt; by default,
+or a custom group it passes to the SDK. Telemetry Agents report the groups they observe
+and link each one back to this client and its owner.</div></div>
+            <div class="form-section"><h3>What happens next?</h3><div class="code-box">Franz records the client in the control plane.
+The client gets no access until a channel's access policy grants it, matched on this client's ORN or labels.
+Client credentials and connection testing are outside this flow.</div></div>
+            <div class="form-actions"><a class="button" href="clients.html">Cancel</a><button class="button primary" type="submit">Register Client</button></div>
+          </form></div>
+        </section>
+      </main>
+    </div>
+    <script>
+    const labels = new Map();
+    const keyInput = document.querySelector('#client-label-key');
+    const valueInput = document.querySelector('#client-label-value');
+    const tags = document.querySelector('#client-label-tags');
+    const hiddenLabels = document.querySelector('#client-labels');
+    const labelStatus = document.querySelector('#client-label-status');
+    const registrationForm = document.querySelector('#client-registration-form');
+
+    function renderLabels() {
+      tags.replaceChildren();
+      labels.forEach((value, key) => {
+        const tag = document.createElement('span');
+        tag.className = 'tag editable-tag';
+        tag.append(`${key}=${value}`);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'tag-remove';
+        remove.setAttribute('aria-label', `Remove ${key}=${value}`);
+        remove.dataset.key = key;
+        remove.textContent = '×';
+        tag.append(remove);
+        tags.append(tag);
+      });
+      hiddenLabels.value = [...labels].map(([key, value]) => `${key}=${value}`).join('\n');
+      labelStatus.textContent = labels.has('org.com/owner')
+        ? `${labels.size} label${labels.size === 1 ? '' : 's'} added.`
+        : 'Add at least an org.com/owner label.';
+    }
+
+    document.querySelector('#add-client-label').addEventListener('click', () => {
+      const key = keyInput.value.trim();
+      const value = valueInput.value.trim();
+      if (!key || !value) {
+        (!key ? keyInput : valueInput).setCustomValidity('Enter both a label key and a label value.');
+        (!key ? keyInput : valueInput).reportValidity();
+        return;
+      }
+      labels.set(key, value);
+      keyInput.value = '';
+      valueInput.value = '';
+      renderLabels();
+    });
+    keyInput.addEventListener('input', () => keyInput.setCustomValidity(''));
+    valueInput.addEventListener('input', () => valueInput.setCustomValidity(''));
+    tags.addEventListener('click', (event) => {
+      const button = event.target.closest('.tag-remove');
+      if (!button) return;
+      labels.delete(button.dataset.key);
+      renderLabels();
+    });
+    registrationForm.addEventListener('submit', (event) => {
+      if (labels.has('org.com/owner')) return;
+      event.preventDefault();
+      labelStatus.textContent = 'Add an org.com/owner label before registering the client.';
+      keyInput.focus();
+    });
+    renderLabels();
+    </script>
+  </body>
+</html>

@@ -1,5 +1,7 @@
 # Odradek
 
+Status: **draft**
+
 The silent observer that never leaves.
 
 ## How it works
@@ -147,6 +149,7 @@ graph TD
 |`kafka_odradek_messages_fetch_latency_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Consumption fetch latency ms in histogram bucket, once message reach consumer|
 |`kafka_odradek_e2e_message_age_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Messages age once it reaches the consumer|
 |`kafka_odradek_full_e2e_ms_histogram_bucket`|`cluster_name`,`observer`, `topic`, `message_size_kb`, `configured_rate_interval`|Time from the production until the message is commited by the consumer|
+|`kafka_odradek_topic_config`|`cluster_name`, `topic`, `config_*`|A metric to expose all config topics config and information|
 
 ### Histogram Bucket Boundaries
 
@@ -169,5 +172,4 @@ Producer configuration is intentionally exposed in the config and must be provid
 | `GET` | `/ops/readiness` | Readiness probe — signals when the service is ready to receive traffic |
 | `GET` | `/ops/liveness` | Liveness probe — signals the process is alive |
 | `GET` | `/metrics` | Prometheus metrics scrape endpoint |
-
 

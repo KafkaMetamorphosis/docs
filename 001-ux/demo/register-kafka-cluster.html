@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register Kafka Cluster | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Kafka Clusters</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link active" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="kafka-clusters.html">Kafka Clusters</a><span>/</span> Register Kafka Cluster</div>
+        <div class="page-heading"><div><h1>Register Kafka Cluster</h1><p class="lead">Record a Kafka Cluster in the control plane and describe its context using fleet labels.</p></div></div>
+        <section class="panel" aria-labelledby="registration-title">
+          <div class="panel-header"><div><h2 id="registration-title">Cluster details</h2><p class="panel-note">Registration records declared intent only. Franz does not validate or connect to the cluster from this screen.</p></div></div>
+          <div class="panel-body form-layout"><form id="cluster-registration-form" action="kafka-clusters.html">
+            <div class="form-section"><h3>Identity and endpoint</h3><p class="form-help">Use an immutable, recognizable name for this fleet resource.</p>
+              <div class="field"><label for="cluster-name">Cluster name <small>Used as the control-plane identifier.</small></label><div><input id="cluster-name" required placeholder="br-prod-s8-kafka-01"></div></div>
+              <div class="field"><label for="bootstrap-url">Bootstrap URL <small>Recorded for the declared Kafka Cluster.</small></label><div><input id="bootstrap-url" required placeholder="broker-1.example.com:9092,broker-2.example.com:9092"><p class="field-note">No connectivity validation occurs during registration.</p></div></div>
+            </div>
+            <div class="form-section"><h3>Cluster Provider</h3><p class="form-help">The Cluster Provider agent that deploys and maintains this cluster's substrate. Franz stores the link; the agent does the work.</p>
+              <div class="field"><label for="cluster-provider">Cluster Provider <small>Optional. One agent can serve many clusters within its context.</small></label><div><select id="cluster-provider"><option value="">No provider — managed outside Franz</option><option value="br-prod-msk">br-prod-msk</option><option value="br-prod-strimzi">br-prod-strimzi</option><option value="local-docker">local-docker</option></select><p class="field-note">Leave empty for a cluster whose infrastructure is managed outside Franz. You can link an agent later. <a href="register-agent.html">Register an Agent</a>.</p></div></div>
+            </div>
+            <div class="form-section"><h3>Context labels</h3><p class="form-help">Add every label that describes this cluster's context. Franz does not supply default labels or label namespaces.</p>
+              <div class="field"><label>Labels <small>Enter a key and a value for each tag.</small></label><div>
+                <div class="label-builder" aria-label="Cluster context labels">
+                  <div class="label-builder-controls"><input id="cluster-label-key" aria-label="Label key" placeholder="Label key, for example environment"><input id="cluster-label-value" aria-label="Label value" placeholder="Label value, for example production"><button class="button" id="add-cluster-label" type="button">Add label</button></div>
+                  <div class="label-tags" id="cluster-label-tags" aria-live="polite"></div>
+                </div>
+                <input id="cluster-labels" name="cluster-labels" type="hidden">
+                <p class="field-note" id="label-status">Add at least one label. Labels are the authoritative context representation.</p>
+              </div></div>
+            </div>
+            <div class="form-section"><h3>What happens next?</h3><div class="code-box">Franz records this Kafka Cluster in the control plane.
+Agents are responsible for interactions with real-world Kafka resources.
+Connection testing, TLS, authentication, broker discovery, and agent installation are outside this flow.</div></div>
+            <div class="form-actions"><a class="button" href="kafka-clusters.html">Cancel</a><button class="button primary" type="submit">Register Kafka Cluster</button></div>
+          </form></div>
+        </section>
+      </main>
+    </div>
+    <script>
+    const labels = new Map();
+    const keyInput = document.querySelector('#cluster-label-key');
+    const valueInput = document.querySelector('#cluster-label-value');
+    const tags = document.querySelector('#cluster-label-tags');
+    const hiddenLabels = document.querySelector('#cluster-labels');
+    const labelStatus = document.querySelector('#label-status');
+    const registrationForm = document.querySelector('#cluster-registration-form');
+
+    function renderLabels() {
+      tags.replaceChildren();
+      labels.forEach((value, key) => {
+        const tag = document.createElement('span');
+        tag.className = 'tag editable-tag';
+        tag.append(`${key}=${value}`);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'tag-remove';
+        remove.setAttribute('aria-label', `Remove ${key}=${value}`);
+        remove.dataset.key = key;
+        remove.textContent = '×';
+        tag.append(remove);
+        tags.append(tag);
+      });
+      hiddenLabels.value = [...labels].map(([key, value]) => `${key}=${value}`).join('\n');
+      labelStatus.textContent = labels.size ? `${labels.size} label${labels.size === 1 ? '' : 's'} added. Labels are the authoritative context representation.` : 'Add at least one label. Labels are the authoritative context representation.';
+    }
+
+    document.querySelector('#add-cluster-label').addEventListener('click', () => {
+      const key = keyInput.value.trim();
+      const value = valueInput.value.trim();
+      if (!key || !value) {
+        (!key ? keyInput : valueInput).setCustomValidity('Enter both a label key and a label value.');
+        (!key ? keyInput : valueInput).reportValidity();
+        return;
+      }
+      labels.set(key, value);
+      keyInput.value = '';
+      valueInput.value = '';
+      renderLabels();
+    });
+    keyInput.addEventListener('input', () => keyInput.setCustomValidity(''));
+    valueInput.addEventListener('input', () => valueInput.setCustomValidity(''));
+    tags.addEventListener('click', (event) => {
+      const button = event.target.closest('.tag-remove');
+      if (!button) return;
+      labels.delete(button.dataset.key);
+      renderLabels();
+    });
+    renderLabels();
+    registrationForm.addEventListener('submit', (event) => {
+      if (labels.size) return;
+      event.preventDefault();
+      labelStatus.textContent = 'Add at least one label before registering the cluster.';
+      keyInput.focus();
+    });
+    </script>
+  </body>
+</html>

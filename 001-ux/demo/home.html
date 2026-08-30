@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Home | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Console Home</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link active" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs">Franz Console</div>
+        <div class="page-heading"><div><h1>Console Home</h1><p class="lead">An overview of your async fleet’s declared resources and latest control-plane signals.</p></div></div>
+        <section class="stats" aria-label="Fleet summary">
+          <div class="stat"><div class="stat-label">Async Channels</div><div class="stat-value">24</div><div class="stat-foot"><a href="async-channels.html">View all channels</a></div></div>
+          <div class="stat"><div class="stat-label">Kafka Clusters</div><div class="stat-value">12</div><div class="stat-foot"><a href="kafka-clusters.html">View clusters</a></div></div>
+          <div class="stat"><div class="stat-label">Active channels</div><div class="stat-value">22</div><div class="stat-foot"><span class="status">Maintained by Franz</span></div></div>
+          <div class="stat"><div class="stat-label">Paused channels</div><div class="stat-value">2</div><div class="stat-foot"><span class="status paused">Automation paused</span></div></div>
+        </section>
+        <section class="panel" aria-labelledby="services-title">
+          <div class="panel-header"><div><h2 id="services-title">Services</h2><p class="panel-note">Choose a service to manage its declared resources.</p></div></div>
+          <div class="panel-body"><div class="service-grid">
+            <a class="service-card" href="async-channels.html"><div class="service-icon">↔</div><h3>Async Channels</h3><p>Create and maintain customer-facing asynchronous communication boundaries, register the clients that use them, and grant access per channel.</p><span class="service-action">Open service →</span></a>
+            <a class="service-card" href="kafka-clusters.html"><div class="service-icon">▦</div><h3>Kafka Clusters</h3><p>Register Kafka clusters in the control plane and describe their context using fleet labels.</p><span class="service-action">Open service →</span></a>
+            <a class="service-card" href="agents.html"><div class="service-icon">⛁</div><h3>Agents</h3><p>Register the programs that connect to the fleet API — cluster providers, resource providers, telemetry agents, and custom integrations.</p><span class="service-action">Open service →</span></a>
+            <a class="service-card" href="policies.html"><div class="service-icon">§</div><h3>Governance</h3><p>Define policies that read fleet indicators and act on the resources they match. Weight decides which policy wins.</p><span class="service-action">Open service →</span></a>
+          </div></div>
+        </section>
+        <section class="panel" aria-labelledby="activity-title">
+          <div class="panel-header"><h2 id="activity-title">Recent control-plane activity</h2><a href="#activity-title">View all activity</a></div>
+          <div class="table-wrap"><table><thead><tr><th>Resource</th><th>Event</th><th>Status</th><th>Time</th></tr></thead><tbody>
+            <tr><td><a href="async-channels.html">billing-events</a></td><td>Kafka topic configuration updated</td><td><span class="status">Accepted</span></td><td>8 minutes ago</td></tr>
+            <tr><td><a href="kafka-clusters.html#br-prod-s8-kafka-01">br-prod-s8-kafka-01</a></td><td>Context labels updated</td><td><span class="status">Recorded</span></td><td>42 minutes ago</td></tr>
+            <tr><td><a href="policy-detail.html">scale-large-topics</a></td><td>Policy increased <code>billing-events</code> partitions 12 → 18</td><td><span class="status">Revision applied</span></td><td>3 hours ago</td></tr>
+            <tr><td><a href="agents.html#broker-metrics-collector">broker-metrics-collector</a></td><td>Telemetry Agent samples stale</td><td><span class="status pending">Stale</span></td><td>46 minutes ago</td></tr>
+            <tr><td><a href="async-channels.html">customer-notifications</a></td><td>Channel automation paused</td><td><span class="status paused">Paused</span></td><td>Yesterday</td></tr>
+          </tbody></table></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

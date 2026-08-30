@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kafka Topic | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Async Channels</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link active" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="async-channels.html">Async Channels</a><span>/</span> <a href="async-channel-detail.html">billing-events</a><span>/</span> Kafka Topic</div>
+        <div class="page-heading"><div><h1>franz.billing-events.v1-p1</h1><p class="lead">Generated Kafka Topic <span class="status">Ready</span><small class="resource-id">orn:acme-platform:kafka-topic:franz.billing-events.v1-p1</small></p></div><a class="button primary" href="async-channel-topic-edit.html">Edit topic configuration</a></div>
+        <section class="panel" aria-labelledby="overview-title">
+          <div class="panel-header"><div><h2 id="overview-title">Topic overview</h2><p class="panel-note">This Kafka Topic is generated and maintained by its parent Async Channel.</p></div></div>
+          <div class="panel-body"><div class="stats" style="margin-bottom:0">
+            <div class="stat"><div class="stat-label">Parent Async Channel</div><div class="stat-value" style="font-size:20px"><a href="async-channel-detail.html">billing-events</a></div><div class="stat-foot">orn:acme-platform:async-channel:billing-events</div></div>
+            <div class="stat"><div class="stat-label">Kafka partitions</div><div class="stat-value">12</div><div class="stat-foot">Topic partition count</div></div>
+            <div class="stat"><div class="stat-label">Replication factor</div><div class="stat-value">3</div><div class="stat-foot">Desired configuration</div></div>
+            <div class="stat"><div class="stat-label">Retention</div><div class="stat-value">7d</div><div class="stat-foot">Desired configuration</div></div>
+          </div></div>
+        </section>
+        <section class="panel" aria-labelledby="location-title">
+          <div class="panel-header"><div><h2 id="location-title">Location</h2><p class="panel-note">The topic's current declared Kafka Cluster and matching context.</p></div></div>
+          <div class="panel-body"><p><strong>Kafka Cluster:</strong> <a href="kafka-clusters.html#br-prod-s8-kafka-02">br-prod-s8-kafka-02</a><small class="resource-id">orn:acme-platform:kafka-cluster:br-prod-s8-kafka-02</small></p><span class="tag">org.com/env=prod</span><span class="tag">org.com/country=br</span><span class="tag">org.com/shard=s8</span></div>
+        </section>
+        <section class="panel" aria-labelledby="configuration-title">
+          <div class="panel-header"><div><h2 id="configuration-title">Kafka configuration</h2><p class="panel-note">Kafka-specific configuration declared for this one topic.</p></div><a class="button" href="async-channel-topic-edit.html">Edit configuration</a></div>
+          <div class="table-wrap"><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody><tr><td><code>partitions</code></td><td>12</td></tr><tr><td><code>replication.factor</code></td><td>3</td></tr><tr><td><code>retention.ms</code></td><td>604800000 (7 days)</td></tr><tr><td><code>cleanup.policy</code></td><td>delete</td></tr><tr><td><code>compression.type</code></td><td>lz4</td></tr></tbody></table></div>
+        </section>
+        <section class="panel" aria-labelledby="signal-title"><div class="panel-header"><div><h2 id="signal-title">Control-plane signal</h2><p class="panel-note">Last configuration was accepted by Franz 8 minutes ago. Real-world actions are performed by agents.</p></div></div></section>
+      </main>
+    </div>
+  </body>
+</html>

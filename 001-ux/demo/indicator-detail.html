@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>replica-size | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Indicators</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link active" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="indicators.html">Indicators</a><span>/</span> replica-size</div>
+        <div class="page-heading"><div><h1>replica-size</h1><p class="lead">Indicator <span class="status">Healthy</span></p></div></div>
+
+        <section class="panel" aria-labelledby="overview-title">
+          <div class="panel-header"><div><h2 id="overview-title">Overview</h2><p class="panel-note">Total on-disk size of all replicas of a topic, summed across the clusters it is placed on.</p></div></div>
+          <div class="table-wrap"><table><tbody>
+            <tr><th scope="row">Unit</th><td>bytes (shown as <code>Gi</code> / <code>Ti</code>)</td></tr>
+            <tr><th scope="row">Applies to</th><td>Kafka Topic</td></tr>
+            <tr><th scope="row">Source agents</th><td><a href="agents.html#kafka-telemetry-br">kafka-telemetry-br</a>, <a href="agents.html#kafka-telemetry-us">kafka-telemetry-us</a></td></tr>
+            <tr><th scope="row">Sample interval</th><td>~60 seconds per topic</td></tr>
+            <tr><th scope="row">Staleness threshold</th><td>15 minutes — beyond this the indicator is marked stale and policies reading it do not act</td></tr>
+            <tr><th scope="row">Protocol</th><td>Telemetry protocol over the fleet API</td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section class="panel" aria-labelledby="values-title">
+          <div class="panel-header"><div><h2 id="values-title">Recent samples</h2><p class="panel-note">Latest value received per topic.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Topic</th><th>Value</th><th>Received</th><th>Source</th></tr></thead><tbody>
+            <tr><td><a href="kafka-topic-detail.html">billing-events</a></td><td>168Gi</td><td>2 minutes ago</td><td><a href="agents.html#kafka-telemetry-br">kafka-telemetry-br</a></td></tr>
+            <tr><td><a href="kafka-topic-detail.html">payment-authorizations</a></td><td>152Gi</td><td>2 minutes ago</td><td><a href="agents.html#kafka-telemetry-br">kafka-telemetry-br</a></td></tr>
+            <tr><td><a href="kafka-topic-detail.html">order-events</a></td><td>121Gi</td><td>3 minutes ago</td><td><a href="agents.html#kafka-telemetry-us">kafka-telemetry-us</a></td></tr>
+            <tr><td><a href="kafka-topic-detail.html">audit-log</a></td><td>96Gi</td><td>3 minutes ago</td><td><a href="agents.html#kafka-telemetry-us">kafka-telemetry-us</a></td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section class="panel" aria-labelledby="policies-title">
+          <div class="panel-header"><div><h2 id="policies-title">Policies using this indicator</h2><p class="panel-note">Governance policies that read <code>replica-size</code>.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Policy</th><th>Matcher</th><th>Limit</th><th>Actions</th><th>Status</th></tr></thead><tbody>
+            <tr><td><a href="policy-detail.html">scale-large-topics</a></td><td>Kafka Topic <span class="tag">org.com/env=prod</span></td><td><code>≥ 150Gi</code></td><td><code>increase_field_by(partitions, 50%)</code></td><td><span class="status">Enabled</span></td></tr>
+          </tbody></table></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -35,6 +35,16 @@ Tracks what has been implemented in Franz against the documented spec. Updated a
 | ACL management | Central Registry | Franz | ❌ | ❌ | — | — |
 | Operations / deployment guide | Operation Burden | — | ✅ | — | — | — |
 | Odradek — Kafka SLO metrics exporter | Observability | Odradek | ✅ | ✅ | 2026-04-03 | — |
+| Odradek — Dockerfile + ConfigComponent CONFIG_PATH | Observability | Odradek | ✅ | ✅ | 2026-04-06 | — |
+| Odradek — kafka_clusters key normalization bug fix | Observability | Odradek | ✅ | ✅ | 2026-04-07 | — |
+| Odradek — producer-config keyword key bug fix (max.request.size) | Observability | Odradek | ✅ | ✅ | 2026-04-07 | — |
+| Odradek — custom-labels feature (union schema, registry sanitization) | Observability | Odradek | ✅ | ✅ | 2026-04-07 | — |
+| Odradek — Grafana dashboard dynamic SLO thresholds + observer variable | Observability | Odradek | ✅ | ✅ | 2026-04-07 | — |
+| Odradek — Grafana dashboard topic-based selector (fixes consumer panels) | Observability | Odradek | ✅ | ✅ | 2026-04-07 | — |
+| Odradek — topic-info observer: list all topics + 9 new per-topic/process metrics | Observability | Odradek | ✅ | ✅ | 2026-04-07 | — |
+| Odradek — topic-info observer: topics-filter + observe-configs (dynamic numeric/string config gauges) | Observability | Odradek | ✅ | ✅ | 2026-04-07 | — |
+| UX prototype — Kafka Clusters list / registration form page split + list pagination | UX | Docs (`001-ux`) | ✅ | ✅ | 2026-08-29 | — |
+| UX prototype — Provider concept (LocalDocker/MSK/Strimzi), list + register screens, cluster linkage | UX | Docs (`001-ux`) | ✅ | ✅ | 2026-08-29 | — |
 
 ---
 
@@ -84,7 +94,7 @@ Full CRUD with validation (partitions increase-only) and pagination.
 | `PUT` | `/api/v0/topic_configurations/:topic-configuration-id` |
 | `DELETE` | `/api/v0/topic_configurations/:topic-configuration-id` |
 
-Spec: [003-franz/003.2-kafka-topic-definition.md](./003-franz/003.2-kafka-topic-definition.md)
+Spec: [003-franz/003.2-async-channel.md](./003-franz/003.2-async-channel.md)
 
 ---
 
@@ -103,7 +113,7 @@ Full CRUD with soft delete, user-driven state machine (Active↔Paused, Error→
 
 State machine transitions available via API: `Active → Paused`, `Paused → Active`, `Error → Paused`. `Error` and `Deleted` cannot be set via PUT.
 
-Spec: [003-franz/003.2-kafka-topic-definition.md](./003-franz/003.2-kafka-topic-definition.md)
+Spec: [003-franz/003.2-async-channel.md](./003-franz/003.2-async-channel.md)
 
 ---
 
@@ -162,7 +172,7 @@ The reconciler-facing endpoints Franz exposes. Gregor Samsa polls for all active
 
 Inform contract: Gregor Samsa reports `outcome: created | updated | deleted | error` per revision. Franz derives all state transitions internally.
 
-Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md)
+Spec: [003-franz/003.3-kafka-topic.md](./003-franz/003.3-kafka-topic.md) | [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md)
 
 ---
 
@@ -175,7 +185,7 @@ User-facing endpoints for modifying existing claims.
 | `PUT` | `/api/v0/clusters/:cluster-name/claims/:claim-id/cluster-migration` | Migrate claim to a different cluster |
 | `DELETE` | `/api/v0/clusters/:cluster-name/claims/:claim-id` | Delete claim; creates PendingDelete revision |
 
-Spec: [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | [003-franz/003.7-claim-management.md](./003-franz/003.7-claim-management.md)
+Spec: [003-franz/003.3-kafka-topic.md](./003-franz/003.3-kafka-topic.md) | [003-franz/003.7-topic-management.md](./003-franz/003.7-topic-management.md)
 
 ---
 

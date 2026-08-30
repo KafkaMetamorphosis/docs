@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kafka Clusters | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Kafka Clusters</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link active" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> Kafka Clusters</div>
+        <div class="page-heading"><div><h1>Kafka Clusters</h1><p class="lead">Registered Kafka resources and their declared fleet contexts.</p></div><a class="button primary" href="register-kafka-cluster.html">Register Kafka Cluster</a></div>
+        <section class="panel" aria-labelledby="cluster-list-title">
+          <div class="toolbar"><input class="filter" type="search" aria-label="Find Kafka Clusters" placeholder="Find Kafka Clusters"><span class="panel-note">12 registered clusters</span></div>
+          <div class="table-wrap"><table><thead><tr><th id="cluster-list-title">Cluster name</th><th>Bootstrap URL</th><th>Context labels</th><th>Cluster Provider</th><th>Status</th></tr></thead><tbody>
+            <tr id="br-prod-s6-kafka-01"><td><a href="#br-prod-s6-kafka-01">br-prod-s6-kafka-01</a><small class="resource-id">orn:acme-platform:kafka-cluster:br-prod-s6-kafka-01</small></td><td><code>broker-1.s6.br.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=br</span><span class="tag">shard=s6</span></td><td><a href="agents.html#br-prod-msk">br-prod-msk</a></td><td><span class="status">Registered</span></td></tr>
+            <tr id="br-prod-s8-kafka-01"><td><a href="#br-prod-s8-kafka-01">br-prod-s8-kafka-01</a><small class="resource-id">orn:acme-platform:kafka-cluster:br-prod-s8-kafka-01</small></td><td><code>broker-1.br.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=br</span><span class="tag">shard=s8</span></td><td><a href="agents.html#br-prod-msk">br-prod-msk</a></td><td><span class="status">Registered</span></td></tr>
+            <tr id="br-prod-s8-kafka-02"><td><a href="#br-prod-s8-kafka-02">br-prod-s8-kafka-02</a><small class="resource-id">orn:acme-platform:kafka-cluster:br-prod-s8-kafka-02</small></td><td><code>broker-1b.br.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=br</span><span class="tag">shard=s8</span></td><td><a href="agents.html#br-prod-msk">br-prod-msk</a></td><td><span class="status">Labels updated</span></td></tr>
+            <tr id="br-prod-s8-kafka-03"><td><a href="#br-prod-s8-kafka-03">br-prod-s8-kafka-03</a><small class="resource-id">orn:acme-platform:kafka-cluster:br-prod-s8-kafka-03</small></td><td><code>broker-1c.br.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=br</span><span class="tag">shard=s8</span></td><td><a href="agents.html#br-prod-strimzi">br-prod-strimzi</a></td><td><span class="status pending">Awaiting agent signal</span></td></tr>
+            <tr id="br-prod-s9-kafka-01"><td><a href="#br-prod-s9-kafka-01">br-prod-s9-kafka-01</a><small class="resource-id">orn:acme-platform:kafka-cluster:br-prod-s9-kafka-01</small></td><td><code>broker-1.s9.br.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=br</span><span class="tag">shard=s9</span></td><td><a href="agents.html#br-prod-strimzi">br-prod-strimzi</a></td><td><span class="status pending">Awaiting agent signal</span></td></tr>
+            <tr id="br-staging-s2-kafka-01"><td><a href="#br-staging-s2-kafka-01">br-staging-s2-kafka-01</a><small class="resource-id">orn:acme-platform:kafka-cluster:br-staging-s2-kafka-01</small></td><td><code>broker-1.s2.staging.br.example.com:9092</code></td><td><span class="tag">env=staging</span><span class="tag">country=br</span><span class="tag">shard=s2</span></td><td><a href="agents.html#local-docker">local-docker</a></td><td><span class="status">Registered</span></td></tr>
+            <tr id="co-prod-s1-kafka-01"><td><a href="#co-prod-s1-kafka-01">co-prod-s1-kafka-01</a><small class="resource-id">orn:acme-platform:kafka-cluster:co-prod-s1-kafka-01</small></td><td><code>broker-1.co.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=co</span><span class="tag">shard=s1</span></td><td><span class="panel-note">Not linked</span></td><td><span class="status">Registered</span></td></tr>
+            <tr id="mx-prod-s4-kafka-01"><td><a href="#mx-prod-s4-kafka-01">mx-prod-s4-kafka-01</a><small class="resource-id">orn:acme-platform:kafka-cluster:mx-prod-s4-kafka-01</small></td><td><code>broker-1.mx.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=mx</span><span class="tag">shard=s4</span></td><td><span class="panel-note">Not linked</span></td><td><span class="status">Labels updated</span></td></tr>
+            <tr id="us-prod-s3-kafka-01"><td><a href="#us-prod-s3-kafka-01">us-prod-s3-kafka-01</a><small class="resource-id">orn:acme-platform:kafka-cluster:us-prod-s3-kafka-01</small></td><td><code>broker-1.us.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=us</span><span class="tag">shard=s3</span></td><td><span class="panel-note">Not linked</span></td><td><span class="status">Registered</span></td></tr>
+            <tr id="us-prod-s3-kafka-02"><td><a href="#us-prod-s3-kafka-02">us-prod-s3-kafka-02</a><small class="resource-id">orn:acme-platform:kafka-cluster:us-prod-s3-kafka-02</small></td><td><code>broker-1b.us.example.com:9092</code></td><td><span class="tag">env=prod</span><span class="tag">country=us</span><span class="tag">shard=s3</span></td><td><span class="panel-note">Not linked</span></td><td><span class="status">Registered</span></td></tr>
+          </tbody></table></div>
+          <nav class="pagination" aria-label="Kafka Cluster pagination"><span class="pagination-summary">Showing 1–10 of 12</span><span aria-hidden="true">‹</span><span class="current" aria-current="page">1</span><a href="#page-2" aria-label="Page 2">2</a><a href="#page-2" aria-label="Next page">›</a></nav>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

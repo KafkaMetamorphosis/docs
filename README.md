@@ -28,12 +28,12 @@ Gregor Samsa runs as a sidecar or agent scoped to a single Kafka cluster. It rea
 | [002-clojure-projects-structure.md](./002-clojure-projects-structure.md) | Clojure project layout and namespace conventions. |
 | [003-franz/003.0-franz.md](./003-franz/003.0-franz.md) | Franz overview and dependencies. |
 | [003-franz/003.1-kafka-cluster.md](./003-franz/003.1-kafka-cluster.md) | Cluster registration — CRUD API. |
-| [003-franz/003.2-kafka-topic-definition.md](./003-franz/003.2-kafka-topic-definition.md) | TopicConfiguration and TopicDefinition — schemas, state machine, API. |
-| [003-franz/003.3-topic-claim.md](./003-franz/003.3-topic-claim.md) | TopicClaim and TopicRevision — state machines, reconciliation API, retry, outcome mapping. |
+| [003-franz/003.2-async-channel.md](./003-franz/003.2-async-channel.md) | TopicConfiguration and TopicDefinition — schemas, state machine, API. |
+| [003-franz/003.3-kafka-topic.md](./003-franz/003.3-kafka-topic.md) | TopicClaim and TopicRevision — state machines, reconciliation API, retry, outcome mapping. |
 | [003-franz/003.4-topic-cluster-selection.md](./003-franz/003.4-topic-cluster-selection.md) | Topic Definition Expansion — taint/toleration, affinity, shard-size, scheduling pipeline. |
 | [003-franz/003.5-governance.md](./003-franz/003.5-governance.md) | Governance rules — EDN config controlling topic and cluster create/update behaviour. |
 | [003-franz/003.6-expansion-engine.md](./003-franz/003.6-expansion-engine.md) | Topic Definition Expansion engine — scheduling pipeline, taint/toleration, affinity, shard-size, config materialisation. |
-| [003-franz/003.7-claim-management.md](./003-franz/003.7-claim-management.md) | Claim management endpoints — update-config, cluster migration (spec, not yet implemented). |
+| [003-franz/003.7-topic-management.md](./003-franz/003.7-topic-management.md) | Claim management endpoints — update-config, cluster migration (spec, not yet implemented). |
 | [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md) | Gregor Samsa reconciliation loop — full service spec, poll/inform contract, retry, error handling. |
 
 ### Operations

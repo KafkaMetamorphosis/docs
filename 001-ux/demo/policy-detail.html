@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>scale-large-topics | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Policies</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link active" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="policies.html">Policies</a><span>/</span> scale-large-topics</div>
+        <div class="page-heading"><div><h1>scale-large-topics</h1><p class="lead">Governance policy <span class="status">Enabled</span><small class="resource-id">orn:acme-platform:policy:scale-large-topics</small></p></div><div><a class="button" href="register-policy.html">Edit policy</a> <a class="button danger" href="#lifecycle">Disable policy</a></div></div>
+
+        <section class="panel" aria-labelledby="definition-title">
+          <div class="panel-header"><div><h2 id="definition-title">Definition</h2><p class="panel-note">When the indicator crosses the limit for a matched resource, the actions run against that resource.</p></div></div>
+          <div class="table-wrap"><table><tbody>
+            <tr><th scope="row">Matcher entity</th><td>Kafka Topic</td></tr>
+            <tr><th scope="row">Matcher selector</th><td><span class="tag">org.com/env=prod</span></td></tr>
+            <tr><th scope="row">Indicator</th><td><a href="indicator-detail.html"><code>replica-size</code></a> — bytes, published by <a href="agents.html#kafka-telemetry-br">kafka-telemetry-br</a> / <a href="agents.html#kafka-telemetry-us">kafka-telemetry-us</a></td></tr>
+            <tr><th scope="row">Limit</th><td><code>replica-size ≥ 150Gi</code></td></tr>
+            <tr><th scope="row">Actions</th><td><code>increase_field_by(partitions, 50%)</code></td></tr>
+            <tr><th scope="row">Weight</th><td>80</td></tr>
+            <tr><th scope="row">Status</th><td><span class="status">Enabled</span> · last fired 3 hours ago</td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section class="panel" aria-labelledby="matched-title">
+          <div class="panel-header"><div><h2 id="matched-title">Matched resources</h2><p class="panel-note">6 Kafka Topics match the selector. Value shown is the latest indicator sample.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Resource</th><th>Context</th><th><code>replica-size</code></th><th>Against limit</th></tr></thead><tbody>
+            <tr><td><a href="kafka-topic-detail.html">billing-events</a></td><td><span class="tag">br-prod-s8</span></td><td>168Gi</td><td><span class="status paused">Over limit</span></td></tr>
+            <tr><td><a href="kafka-topic-detail.html">payment-authorizations</a></td><td><span class="tag">br-prod-s8</span></td><td>152Gi</td><td><span class="status paused">Over limit</span></td></tr>
+            <tr><td><a href="kafka-topic-detail.html">order-events</a></td><td><span class="tag">us-prod-s3</span></td><td>121Gi</td><td><span class="status">Within limit</span></td></tr>
+            <tr><td><a href="kafka-topic-detail.html">audit-log</a></td><td><span class="tag">us-prod-s3</span></td><td>96Gi</td><td><span class="status">Within limit</span></td></tr>
+            <tr><td><a href="kafka-topic-detail.html">support-case-events</a></td><td><span class="tag">br-prod-s6</span></td><td>44Gi</td><td><span class="status">Within limit</span></td></tr>
+            <tr><td><a href="kafka-topic-detail.html">shipment-updates</a></td><td><span class="tag">mx-prod-s4</span></td><td>28Gi</td><td><span class="status">Within limit</span></td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section class="panel" aria-labelledby="history-title">
+          <div class="panel-header"><div><h2 id="history-title">Action history</h2><p class="panel-note">Every automated change this policy has made.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Time</th><th>Resource</th><th>Indicator value</th><th>Action</th><th>Result</th></tr></thead><tbody>
+            <tr><td>3 hours ago</td><td><a href="kafka-topic-detail.html">billing-events</a></td><td>163Gi</td><td><code>increase_field_by(partitions, 50%)</code> · 12 → 18</td><td><span class="status">Revision applied</span></td></tr>
+            <tr><td>Yesterday</td><td><a href="kafka-topic-detail.html">order-events</a></td><td>151Gi</td><td><code>increase_field_by(partitions, 50%)</code> · 8 → 12</td><td><span class="status">Revision applied</span></td></tr>
+            <tr><td>3 days ago</td><td><a href="kafka-topic-detail.html">payment-authorizations</a></td><td>158Gi</td><td><code>increase_field_by(partitions, 50%)</code> · 16 → 24</td><td><span class="status">Revision applied</span></td></tr>
+            <tr><td>6 days ago</td><td><a href="kafka-topic-detail.html">billing-events</a></td><td>172Gi</td><td><code>increase_field_by(partitions, 50%)</code> · 8 → 12</td><td><span class="status pending">Superseded by newer sample</span></td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section class="panel" id="lifecycle" aria-labelledby="lifecycle-title">
+          <div class="panel-header"><div><h2 id="lifecycle-title">Lifecycle</h2><p class="panel-note">Disabling keeps the policy and its history but stops evaluation. It does not revert changes already made.</p></div><a class="button danger" href="#lifecycle">Disable policy</a></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register Policy | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Policies</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link active" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="policies.html">Policies</a><span>/</span> Register Policy</div>
+        <div class="page-heading"><div><h1>Register Policy</h1><p class="lead">Match resources, read one indicator, and run actions when the limit is crossed.</p></div></div>
+        <section class="panel" aria-labelledby="policy-registration-title">
+          <div class="panel-header"><div><h2 id="policy-registration-title">Policy details</h2><p class="panel-note">Franz records the policy and evaluates it against the latest indicator samples. Actions change declared state; agents realise the change.</p></div></div>
+          <div class="panel-body form-layout"><form id="policy-registration-form" action="policies.html">
+            <div class="form-section"><h3>Identity</h3>
+              <div class="field"><label for="policy-name">Policy name <small>Used as the control-plane identifier.</small></label><div><input id="policy-name" required placeholder="scale-large-topics"></div></div>
+              <div class="field"><label for="policy-weight">Weight <small>Higher wins when several policies act on one resource.</small></label><div><input id="policy-weight" type="number" min="0" max="100" step="1" value="50" required></div></div>
+            </div>
+
+            <div class="form-section"><h3>Matcher</h3><p class="form-help">Which resources the policy applies to.</p>
+              <div class="field"><label for="matcher-entity">Entity</label><div><select id="matcher-entity" required>
+                <option value="kafka-topic">Kafka Topic</option>
+                <option value="kafka-cluster">Kafka Cluster</option>
+                <option value="async-channel">Async Channel</option>
+              </select></div></div>
+              <div class="field"><label for="matcher-selector">Label selector <small><code>=</code> and <code>IN (…)</code> are supported. Empty means every resource of that entity.</small></label><div><textarea id="matcher-selector" placeholder="org.com/env=prod, org.com/country IN (br, mx)"></textarea></div></div>
+            </div>
+
+            <div class="form-section"><h3>Indicator and limit</h3><p class="form-help">The value the policy watches, and the threshold that triggers it.</p>
+              <div class="field"><label for="policy-indicator">Indicator</label><div><select id="policy-indicator" required>
+                <option value="replication-factor">replication-factor — count</option>
+                <option value="partitions">partitions — count</option>
+                <option value="replica-size">replica-size — bytes</option>
+                <option value="retention-not-used">retention-not-used — duration</option>
+                <option value="messages-will-be-lost-in">messages-will-be-lost-in — duration</option>
+                <option value="avg-replica-per-broker">avg-replica-per-broker — count</option>
+                <option value="avg-leader-per-broker">avg-leader-per-broker — count</option>
+                <option value="channel-idle-time">channel-idle-time — duration</option>
+                <option value="broker-disk-free">broker-disk-free — bytes</option>
+              </select><p class="field-note">Indicators are published by <a href="agents.html">Telemetry Agents</a>. <a href="indicators.html">Browse the indicator reference</a>.</p></div></div>
+              <div class="field"><label for="limit-operator">Limit</label><div class="label-builder-controls">
+                <select id="limit-operator" aria-label="Comparator">
+                  <option value="lt">less than</option>
+                  <option value="lte">less than or equal</option>
+                  <option value="eq">equal to</option>
+                  <option value="neq">not equal to</option>
+                  <option value="gte" selected>greater than or equal</option>
+                  <option value="gt">greater than</option>
+                </select>
+                <input id="limit-value" aria-label="Limit value" placeholder="150Gi" required>
+              </div></div>
+            </div>
+
+            <div class="form-section"><h3>Actions</h3><p class="form-help">Run against every matched resource when the limit is crossed. Add one or more.</p>
+              <div class="field"><label>Actions</label><div>
+                <div class="label-builder" aria-label="Policy actions">
+                  <div class="label-builder-controls">
+                    <select id="action-kind" aria-label="Action">
+                      <option value="add_label">add_label</option>
+                      <option value="set_status">set_status</option>
+                      <option value="update_field">update_field</option>
+                      <option value="increase_field_by">increase_field_by</option>
+                      <option value="decrease_field_by">decrease_field_by</option>
+                    </select>
+                    <input id="action-arg1" aria-label="First argument" placeholder="field">
+                    <input id="action-arg2" aria-label="Second argument" placeholder="value">
+                    <button class="button" id="add-action" type="button">Add action</button>
+                  </div>
+                  <div class="label-tags" id="action-tags" aria-live="polite"></div>
+                </div>
+                <input id="policy-actions" name="policy-actions" type="hidden">
+                <p class="field-note" id="action-status">Add at least one action.</p>
+              </div></div>
+            </div>
+
+            <div class="form-section"><h3>Dry run</h3><p class="form-help">Preview which resources match and which would trigger on the latest samples, without saving.</p>
+              <div class="field"><label>Preview</label><div>
+                <button class="button" id="run-dry-run" type="button">Run dry run</button>
+                <div id="dry-run-result" hidden>
+                  <div class="code-box">Matches 6 Kafka Topics for selector <code>org.com/env=prod</code>.
+On the latest samples, 2 would trigger now:
+
+  billing-events        replica-size = 168Gi   → increase_field_by(partitions, 50%)   12 → 18
+  payment-authorizations replica-size = 152Gi  → increase_field_by(partitions, 50%)   24 → 36
+
+4 matched topics are below the limit and would not change.</div>
+                  <p class="field-note">Dry run uses the most recent indicator sample per resource. It does not create revisions.</p>
+                </div>
+              </div></div>
+            </div>
+
+            <div class="form-actions"><a class="button" href="policies.html">Cancel</a><button class="button primary" type="submit">Register Policy</button></div>
+          </form></div>
+        </section>
+      </main>
+    </div>
+    <script>
+    const actions = [];
+    const actionKind = document.querySelector('#action-kind');
+    const arg1 = document.querySelector('#action-arg1');
+    const arg2 = document.querySelector('#action-arg2');
+    const actionTags = document.querySelector('#action-tags');
+    const hiddenActions = document.querySelector('#policy-actions');
+    const actionStatus = document.querySelector('#action-status');
+    const policyForm = document.querySelector('#policy-registration-form');
+
+    const argSpec = {
+      add_label: ['label key', 'label value'],
+      set_status: ['status', null],
+      update_field: ['field', 'value'],
+      increase_field_by: ['field', 'amount to add'],
+      decrease_field_by: ['field', 'amount to subtract'],
+    };
+
+    function syncArgs() {
+      const spec = argSpec[actionKind.value];
+      arg1.placeholder = spec[0];
+      arg2.placeholder = spec[1] || '';
+      arg2.hidden = spec[1] === null;
+      if (spec[1] === null) arg2.value = '';
+    }
+
+    function renderActions() {
+      actionTags.replaceChildren();
+      actions.forEach((action, index) => {
+        const tag = document.createElement('span');
+        tag.className = 'tag editable-tag';
+        const args = action.args.filter((value) => value !== '').join(', ');
+        tag.append(`${action.kind}(${args})`);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'tag-remove';
+        remove.setAttribute('aria-label', `Remove action ${index + 1}`);
+        remove.dataset.index = String(index);
+        remove.textContent = '×';
+        tag.append(remove);
+        actionTags.append(tag);
+      });
+      hiddenActions.value = actions.map((action) => `${action.kind}(${action.args.filter((v) => v !== '').join(', ')})`).join('\n');
+      actionStatus.textContent = actions.length ? `${actions.length} action${actions.length === 1 ? '' : 's'} added.` : 'Add at least one action.';
+    }
+
+    document.querySelector('#add-action').addEventListener('click', () => {
+      const spec = argSpec[actionKind.value];
+      const value1 = arg1.value.trim();
+      const value2 = arg2.hidden ? '' : arg2.value.trim();
+      if (!value1 || (spec[1] !== null && !value2)) {
+        arg1.setCustomValidity('Fill in the action arguments.');
+        arg1.reportValidity();
+        return;
+      }
+      actions.push({ kind: actionKind.value, args: [value1, value2] });
+      arg1.value = '';
+      arg2.value = '';
+      renderActions();
+    });
+
+    arg1.addEventListener('input', () => arg1.setCustomValidity(''));
+    actionKind.addEventListener('change', syncArgs);
+    actionTags.addEventListener('click', (event) => {
+      const button = event.target.closest('.tag-remove');
+      if (!button) return;
+      actions.splice(Number(button.dataset.index), 1);
+      renderActions();
+    });
+
+    document.querySelector('#run-dry-run').addEventListener('click', () => {
+      document.querySelector('#dry-run-result').hidden = false;
+    });
+
+    policyForm.addEventListener('submit', (event) => {
+      if (actions.length) return;
+      event.preventDefault();
+      actionStatus.textContent = 'Add at least one action before registering the policy.';
+      actionKind.focus();
+    });
+
+    syncArgs();
+    renderActions();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Clients | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Clients</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link active" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> Clients</div>
+        <div class="page-heading"><div><h1>Clients</h1><p class="lead">Registered identities that read from or write to Async Channels. What a client may do is granted by each channel's access policy.</p></div><a class="button primary" href="register-client.html">Register Client</a></div>
+        <section class="panel" aria-labelledby="client-list-title">
+          <div class="toolbar"><input class="filter" type="search" aria-label="Find Clients" placeholder="Find Clients"><span class="panel-note">12 registered clients</span></div>
+          <div class="table-wrap"><table><thead><tr><th id="client-list-title">Client name</th><th>Owner</th><th>Observed consumer groups</th><th>Channel access</th></tr></thead><tbody>
+            <tr id="billing-ingestor"><td><a href="client-detail.html">billing-ingestor</a><small class="resource-id">orn:acme-platform:client:billing-ingestor</small></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="panel-note">none</span></td><td><a href="async-channel-detail.html">billing-events</a> <span class="tag">Write</span></td></tr>
+            <tr id="billing-settlement-worker"><td><a href="client-detail.html">billing-settlement-worker</a><small class="resource-id">orn:acme-platform:client:billing-settlement-worker</small></td><td><span class="tag">org.com/owner=payments-team</span></td><td><code>billing-settlement-worker.franz.billing-events.v1-p0</code> +2</td><td><a href="async-channel-detail.html">billing-events</a> <span class="tag">Read</span></td></tr>
+            <tr id="payment-auth-service"><td><a href="client-detail.html">payment-auth-service</a><small class="resource-id">orn:acme-platform:client:payment-auth-service</small></td><td><span class="tag">org.com/owner=payments-team</span></td><td><code>payment-auth-service.franz.payment-authorizations.v1-p0</code> +2</td><td>payment-authorizations <span class="tag">Read</span> <span class="tag">Write</span></td></tr>
+            <tr id="notification-emitter"><td><a href="client-detail.html">notification-emitter</a><small class="resource-id">orn:acme-platform:client:notification-emitter</small></td><td><span class="tag">org.com/owner=notifications-team</span></td><td><span class="panel-note">none</span></td><td>customer-notifications <span class="tag">Write</span></td></tr>
+            <tr id="notification-dispatcher"><td><a href="client-detail.html">notification-dispatcher</a><small class="resource-id">orn:acme-platform:client:notification-dispatcher</small></td><td><span class="tag">org.com/owner=notifications-team</span></td><td><code>notification-dispatcher.franz.customer-notifications.v1-p0</code> +2</td><td>customer-notifications <span class="tag">Read</span></td></tr>
+            <tr id="fraud-scorer"><td><a href="client-detail.html">fraud-scorer</a><small class="resource-id">orn:acme-platform:client:fraud-scorer</small></td><td><span class="tag">org.com/owner=fraud-team</span></td><td><code>nightly-reconcile</code></td><td>fraud-alerts <span class="tag">Read</span> <span class="tag">Write</span></td></tr>
+            <tr id="order-service"><td><a href="client-detail.html">order-service</a><small class="resource-id">orn:acme-platform:client:order-service</small></td><td><span class="tag">org.com/owner=catalog-team</span></td><td><span class="panel-note">none</span></td><td>order-events <span class="tag">Write</span></td></tr>
+            <tr id="inventory-sync"><td><a href="client-detail.html">inventory-sync</a><small class="resource-id">orn:acme-platform:client:inventory-sync</small></td><td><span class="tag">org.com/owner=catalog-team</span></td><td><code>inventory-sync.franz.inventory-changes.v1-p0</code> +1</td><td>inventory-changes <span class="tag">Read</span> <span class="tag">Write</span></td></tr>
+            <tr id="analytics-loader"><td><a href="client-detail.html">analytics-loader</a><small class="resource-id">orn:acme-platform:client:analytics-loader</small></td><td><span class="tag">org.com/owner=data-platform</span></td><td><code>analytics-loader.franz.audit-log.v1-p0</code> +5</td><td>audit-log <span class="tag">Read</span> · order-events <span class="tag">Read</span></td></tr>
+            <tr id="audit-archiver"><td><a href="client-detail.html">audit-archiver</a><small class="resource-id">orn:acme-platform:client:audit-archiver</small></td><td><span class="tag">org.com/owner=data-platform</span></td><td><code>audit-archiver.franz.audit-log.v1-p0</code> +2</td><td>audit-log <span class="tag">Read</span></td></tr>
+          </tbody></table></div>
+          <nav class="pagination" aria-label="Client pagination"><span class="pagination-summary">Showing 1–10 of 12</span><span aria-hidden="true">‹</span><span class="current" aria-current="page">1</span><a href="#page-2" aria-label="Page 2">2</a><a href="#page-2" aria-label="Next page">›</a></nav>
+        </section>
+        <section class="panel" aria-labelledby="clients-note-title">
+          <div class="panel-header"><div><h2 id="clients-note-title">How clients work</h2></div></div>
+          <div class="panel-body">
+            <p>A client is only an identity and a set of labels. It carries no Read or Write role of its own — every permission comes from the access policy of the channel it connects to, evaluated against the client's ORN and labels (zero trust: no matching statement means no access).</p>
+            <p>Consumer groups are not registered here. When a client subscribes to a channel it uses a group named <code>&lt;client&gt;.&lt;topic&gt;</code> by default, or a custom group it supplies. Telemetry Agents report the groups they observe, along with the client and owner behind each one, which is what populates the column above.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

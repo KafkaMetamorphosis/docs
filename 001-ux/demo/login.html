@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body class="login-page">
+    <main class="login-card" aria-labelledby="sign-in-title">
+      <div class="login-brand"><span class="brand-mark">F</span> Franz</div>
+      <h1 id="sign-in-title">Sign in to the Franz Console</h1>
+      <p class="lead">Manage your async fleet’s declared intent.</p>
+      <form action="home.html">
+        <div class="login-field">
+          <label for="account">Organization or account ID</label>
+          <input id="account" name="account" autocomplete="organization" placeholder="acme-platform" required>
+        </div>
+        <div class="login-field">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@acme.com" required>
+        </div>
+        <div class="login-field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="button primary" type="submit">Sign in</button>
+      </form>
+      <p class="login-meta">Prototype only — authentication is not connected.</p>
+    </main>
+  </body>
+</html>

@@ -1,5 +1,7 @@
 # Kafka Topic Reconciliation
 
+Status: **draft**
+
 Gregor Samsa is the execution-plane service that reconciles desired state (defined in Franz) against actual state in a Kafka cluster. Each Gregor Samsa instance manages exactly one Kafka cluster.
 
 **Status: Not yet implemented.** This document is the full specification.

@@ -1,5 +1,7 @@
 # Architecture Overview
 
+Status: **draft**
+
 Describes how the management of a large Kafka fleet with resources across many clusters and locations.
 
 ## Important Concepts

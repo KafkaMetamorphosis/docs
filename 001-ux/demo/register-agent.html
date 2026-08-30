@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register Agent | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Agents</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link active" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="agents.html">Agents</a><span>/</span> Register Agent</div>
+        <div class="page-heading"><div><h1>Register Agent</h1><p class="lead">Record an agent that will connect to the Franz fleet API and act on fleet data.</p></div></div>
+        <section class="panel" aria-labelledby="agent-registration-title">
+          <div class="panel-header"><div><h2 id="agent-registration-title">Agent details</h2><p class="panel-note">Registration records the agent in the control plane. Franz does not connect to the agent, test it, or provision anything from this screen.</p></div></div>
+          <div class="panel-body form-layout"><form id="agent-registration-form" action="agents.html">
+            <div class="form-section"><h3>Identity and type</h3><p class="form-help">The agent connects to the fleet API with this identity and acts within the slice of the fleet it is responsible for.</p>
+              <div class="field"><label for="agent-name">Agent name <small>Used as the control-plane identifier.</small></label><div><input id="agent-name" required placeholder="br-prod-msk"></div></div>
+              <div class="field"><label for="agent-type">Agent type</label><div><select id="agent-type" required>
+                <option value="cluster-provider">Cluster Provider</option>
+                <option value="resource-provider">Resource Provider</option>
+                <option value="telemetry-agent">Telemetry Agent</option>
+                <option value="custom">Custom</option>
+              </select><p class="field-note">Type is used to filter and organise agents. It does not change how the agent connects. <a href="agents.html#agent-types-title">See what each type is responsible for</a>.</p></div></div>
+            </div>
+            <div class="form-section"><h3>Fleet API connection</h3><p class="form-help">The agent pulls its work and pushes results through the fleet API. Franz never calls the agent.</p>
+              <div class="field"><label for="agent-endpoint">Fleet API endpoint <small>Address the agent connects from, for reference.</small></label><div><input id="agent-endpoint" required placeholder="agent-sa-east-1.internal:8443"></div></div>
+              <div class="field"><label for="agent-protocol">Protocol</label><div><select id="agent-protocol"><option value="grpc">gRPC</option></select><p class="field-note">gRPC is the only supported protocol. Agent credentials, connection testing, and liveness are outside this flow.</p></div></div>
+            </div>
+            <div class="form-section"><h3>Context selector</h3><p class="form-help">The slice of the fleet this agent is responsible for. Franz only hands the agent work that matches this selector.</p>
+              <div class="field"><label for="agent-selector">Selector <small>Label expression. <code>=</code> and <code>IN (…)</code> are supported.</small></label><div><textarea id="agent-selector" placeholder="org.com/env=prod, org.com/country IN (br, mx)"></textarea><p class="field-note">Leave empty for an agent that operates on the whole fleet.</p></div></div>
+            </div>
+            <div class="form-section" id="telemetry-note" hidden><h3>Telemetry protocol</h3><div class="code-box">A Telemetry Agent must publish indicator data over the fleet API following the telemetry protocol:
+each sample carries an indicator name, a value with its unit, and the resource it describes.
+Franz records the samples and exposes them as indicators on the Governance screen.</div>
+            </div>
+            <div class="form-section"><h3>What happens next?</h3><div class="code-box">Franz records this agent in the control plane.
+The agent connects to the fleet API, pulls the work that matches its context selector, and reports results.
+Franz never connects to the agent and never acts on infrastructure itself.</div></div>
+            <div class="form-actions"><a class="button" href="agents.html">Cancel</a><button class="button primary" type="submit">Register Agent</button></div>
+          </form></div>
+        </section>
+      </main>
+    </div>
+    <script>
+    const agentType = document.querySelector('#agent-type');
+    const telemetryNote = document.querySelector('#telemetry-note');
+    function syncTelemetryNote() {
+      telemetryNote.hidden = agentType.value !== 'telemetry-agent';
+    }
+    agentType.addEventListener('change', syncTelemetryNote);
+    syncTelemetryNote();
+    </script>
+  </body>
+</html>

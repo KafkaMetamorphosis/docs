@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>billing-settlement-worker | Franz Console</title>
+    <link rel="stylesheet" href="franz-console.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="home.html"><span class="brand-mark">F</span> Franz</a>
+      <div class="product">Clients</div>
+      <div class="global-search"><input type="search" aria-label="Search services and resources" placeholder="Search services and resources"></div>
+      <nav class="topbar-actions" aria-label="Account navigation"><a href="home.html">acme-platform</a><a href="login.html">Sign out</a></nav>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Main navigation">
+        <a class="nav-link" href="home.html">Home</a>
+        <details class="nav-group" open>
+          <summary>Async Channels</summary>
+          <a class="nav-link" href="async-channels.html">Channels</a>
+          <a class="nav-link active" href="clients.html">Clients</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Governance</summary>
+          <a class="nav-link" href="indicators.html">Indicators</a>
+          <a class="nav-link" href="policies.html">Policies</a>
+        </details>
+        <details class="nav-group" open>
+          <summary>Kafka</summary>
+          <a class="nav-link" href="kafka-clusters.html">Clusters</a>
+          <a class="nav-link" href="agents.html">Agents</a>
+        </details>
+      </nav>
+      <main class="content">
+        <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="clients.html">Clients</a><span>/</span> billing-settlement-worker</div>
+        <div class="page-heading"><div><h1>billing-settlement-worker</h1><p class="lead">Client<small class="resource-id">orn:acme-platform:client:billing-settlement-worker</small></p></div><div><a class="button" href="register-client.html">Edit client</a> <a class="button danger" href="#lifecycle">Delete client</a></div></div>
+
+        <section class="panel" aria-labelledby="identity-title">
+          <div class="panel-header"><div><h2 id="identity-title">Identity</h2><p class="panel-note">A client is only an identity and labels. Permissions come from channel access policies.</p></div></div>
+          <div class="table-wrap"><table><tbody>
+            <tr><th scope="row">Name</th><td>billing-settlement-worker</td></tr>
+            <tr><th scope="row">ORN</th><td><code>orn:acme-platform:client:billing-settlement-worker</code></td></tr>
+            <tr><th scope="row">Labels</th><td><span class="tag">org.com/owner=payments-team</span><span class="tag">org.com/env=prod</span><span class="tag">org.com/team=settlement</span></td></tr>
+            <tr><th scope="row">Default consumer group</th><td><code>billing-settlement-worker.&lt;topic&gt;</code> — one group per topic unless the SDK passes a custom name</td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section class="panel" aria-labelledby="access-title">
+          <div class="panel-header"><div><h2 id="access-title">Channel access</h2><p class="panel-note">Derived from every channel access policy whose statements match this client's ORN or labels.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Channel</th><th>Permission</th><th>Granted by</th></tr></thead><tbody>
+            <tr><td><a href="async-channel-detail.html">billing-events</a></td><td><span class="tag">Read</span></td><td>statement matched <code>org.com/owner=payments-team</code></td></tr>
+            <tr><td><a href="async-channel-detail.html">payment-authorizations</a></td><td><span class="tag">Read</span></td><td>statement matched ORN <code>orn:acme-platform:client:billing-settlement-worker</code></td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section class="panel" aria-labelledby="groups-title">
+          <div class="panel-header"><div><h2 id="groups-title">Observed consumer groups</h2><p class="panel-note">Reported by Telemetry Agents. Not registered in Franz — this is what the client is actually running.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Group</th><th>Channel · topic</th><th>Reported by</th><th>Last seen</th></tr></thead><tbody>
+            <tr><td><code>billing-settlement-worker.franz.billing-events.v1-p0</code></td><td>billing-events · <code>v1-p0</code></td><td><a href="agents.html#kafka-telemetry-br">kafka-telemetry-br</a></td><td>1 minute ago</td></tr>
+            <tr><td><code>billing-settlement-worker.franz.billing-events.v1-p1</code></td><td>billing-events · <code>v1-p1</code></td><td><a href="agents.html#kafka-telemetry-br">kafka-telemetry-br</a></td><td>1 minute ago</td></tr>
+            <tr><td><code>settlement-replay</code> <span class="tag">custom</span></td><td>payment-authorizations · <code>v1-p0</code></td><td><a href="agents.html#kafka-telemetry-br">kafka-telemetry-br</a></td><td>3 hours ago</td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section class="panel" id="lifecycle" aria-labelledby="lifecycle-title">
+          <div class="panel-header"><div><h2 id="lifecycle-title">Lifecycle</h2><p class="panel-note">Deleting a client revokes it from every channel policy that matched it by ORN. Label-matched grants stop applying once the identity is gone.</p></div><a class="button danger" href="#lifecycle">Delete client</a></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
