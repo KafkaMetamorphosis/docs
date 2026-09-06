@@ -908,7 +908,8 @@ Providers) and the first agent implementation. Feature 1 of `franz/docs/impls_pl
 - **Agent implementation** — **Go, in the Franz module** (`cmd/local-kafka-agent/`,
   `pkg/localkafka/`); **Docker Engine API SDK** (no compose); **stateless** — Docker container labels
   (`franz.cluster`, `franz.managed-by`, `franz.recipe-hash`) are the store.
-- **`local-docker` recipe** — one `apache/kafka` KRaft container per cluster; version from the label;
+- **`local-docker` recipe** — one `apache/kafka` KRaft container per cluster; image from
+  `franz.provisioning/kafka-image` or `apache/kafka:<kafka-version>` (ADR-API-008);
   `brokers > 1` warned + ignored (multi-broker deferred).
 - **Proto** — `agent.proto`: `token` in `CreateAgentResponse`, `RotateAgentToken`.
   `common.proto`: `ClusterProviderPhase`. `kafka.proto`: `KafkaCluster.provider_status`,
@@ -937,3 +938,25 @@ Supersedes the "ORN" naming in ADR-API-003 / ADR-API-005 and the `003.1` convent
   pre-rename `orn:` era) still resolve.
 - Rationale: matches the AWS-ARN-style pattern teams already know, lets an operator brand identifiers
   for their org, and keeps the stored identity independent of a presentation setting.
+
+### ADR-API-008: agents advertise a provisioning-label schema (advisory)
+
+Extends ADR-006 / `003.9`. Driven by impls_plan deliverable 08 (console resource management).
+
+- **`Agent.provisioning_labels`** — a repeated `ProvisioningLabelSpec { key, description,
+  allowed_values, default_value, required }` (new message in `agent.proto`). Carried on
+  `CreateAgentRequest` / `UpdateAgentRequest` (mask path `provisioning_labels`, replaced wholesale),
+  returned on `GetAgent` / `ListAgents`. Stored as a `jsonb` column on the `agent` row.
+- **Advisory only.** Franz validates the schema's own well-formedness (`key` non-empty and
+  `franz.`-prefixed, unique keys, `default_value ∈ allowed_values` when both set) but **never**
+  validates another resource's `labels` against it. `KafkaCluster.cluster_provider_agent` stays an
+  unvalidated string; the agent remains the authority on label interpretation.
+- **Purpose** — the console renders one form field per spec when an operator targets an agent
+  (dropdown if `allowed_values`, else text; pre-filled from `default_value`; `required` flagged),
+  writing the values into the target resource's `labels`.
+- **Populated by** the agent at registration (the local-kafka-docker-agent self-declares
+  `deployment-type` / `kafka-version` / `kafka-image`) or an operator in the console.
+- **`franz.provisioning/kafka-image`** — new `local-docker` label: a full apache/kafka-compatible
+  image ref (tag / digest / mirror), precedence over `kafka-version`, feeds the recipe hash.
+- Rationale: makes provisioning intent discoverable and less error-prone without coupling Franz to
+  any agent's recipe logic or making the cluster↔agent link enforced.

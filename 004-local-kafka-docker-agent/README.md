@@ -69,12 +69,22 @@ reserved-label set):
 | Label | Meaning | Feature 1 (`local-docker`) |
 |---|---|---|
 | `franz.provisioning/deployment-type` | selects the recipe family | `local-docker` (only one handled) |
-| `franz.provisioning/kafka-version` | image tag | `apache/kafka:<version>`, default `3.7.0` |
+| `franz.provisioning/kafka-image` | full image ref for an apache/kafka-compatible image (tag, digest, or registry mirror) | used verbatim as the container image |
+| `franz.provisioning/kafka-version` | tag sugar when `kafka-image` is unset | `apache/kafka:<version>`, default `3.7.0` |
 | `franz.provisioning/brokers` | desired broker count | **warned + ignored** if `> 1` |
 | `franz.provisioning/disk-size` | volume size hint | ignored locally |
 
+`kafka-image` takes precedence over `kafka-version`; the resolved ref feeds the
+recipe hash, so changing it recreates the container (data volume kept). It must
+be an apache/kafka-compatible image — the recipe renders the KRaft env for that
+image, not an arbitrary Kafka distribution.
+
 The prefix is open — more keys are added without a breaking change. The agent
-reads only the keys its recipe understands.
+reads only the keys its recipe understands, and **self-declares that set** as its
+`Agent.provisioning_labels` schema (`003.9`) when it registers, so the console
+can pre-fill and constrain the fields on a cluster form: `deployment-type`
+(`["local-docker"]`, default `local-docker`, required), `kafka-version` (default
+`3.7.0`), `kafka-image` (free text).
 
 ## 4. Status — `cluster_provider_event`
 
