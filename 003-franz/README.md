@@ -6,7 +6,7 @@ Franz is the **control plane** for an async fleet. It stores the declared state 
 async resources, applies fleet-wide governance, and receives signals about their
 realization. Franz **never connects to Kafka** — registered agents do the
 real-world work (`../001-architecture-overview.md`,
-`../004-kafka-topic-reconciliation/`, `../005-odradek/`).
+`../104-kafka-topic-reconciliation/`, `../105-odradek/`).
 
 ## The model
 
@@ -93,6 +93,8 @@ the doc wins for meaning. See `003.1-conventions.md` for the rules common to all
 | `003.10` | Clients | Fleet-wide SDK identity; no permission of its own; consumer-group observation; derived access views |
 | `003.11` | Lifecycle & Operations | Pause/resume, soft delete, migration, signal history |
 | `003.12` | Persistence & Data Model | PostgreSQL schema — table per entity, `jsonb` maps/documents, materialized topic config, migrations |
+| `003.13` | Migration & Data Movement | The staged flow behind re-placement, `drain`, cluster delete, re-shard, and the placement governance actions |
+| `003.14` | Telemetry Ingest | `PublishIndicatorSamples` / `ReportConsumerGroups` semantics; pre-registered indicators; time-series storage |
 
 ## Dependencies
 

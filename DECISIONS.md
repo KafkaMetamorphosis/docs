@@ -632,12 +632,12 @@ behaviour**. Markdown keeps only a short "key fields" summary + a link to the pr
 renamed). This entry accumulates the design decisions settled during the rewrite.
 
 **Readiness.** `Status: ready` — `003-franz/README` (index), `003.1`, `003.3`, `003.5`, `003.6`,
-`003.9`, `003.10` (model settled; open questions are tracked deferrals, several belonging to future
-ADRs). Still `Status: draft` — `003.4` (shard routing key/hash unspecified), `003.7`
-(no-eligible-cluster + re-placement unresolved), `003.8` (the `(entity, field)` write whitelist
-undefined), `003.11` (migration data-movement and a control-plane event log each need their own ADR),
-`003.12` (persistence — query layer undecided). `003.2` is a deliberate placeholder
-(`Status: open — not yet decided`).
+`003.9`, `003.10`. Still `Status: draft` — `003.4` (shard routing → SDK ADR), `003.7` (retry-sweep
+interval, uneven distribution), `003.8` (per-action caps, config-key set), `003.11` (control-plane
+event log), `003.12` (sample volume / TSDB question), `003.13` migration & data movement (data-copy
+mechanism), `003.14` telemetry ingest (agent auth, ingest→eval delivery). `003.2` is a deliberate
+placeholder (`Status: open — not yet decided`). Most remaining draft open questions are narrowed —
+see ADR-API-005.
 
 **Kafka Cluster (`003.3`).**
 - Cluster has a persisted `state`: `ACTIVE` / `PAUSED` / `DELETED` only (no degraded/draining/health yet).
@@ -814,3 +814,60 @@ Full doc: `003-franz/003.12-persistence-and-data-model.md`.
 - **Still open:** query layer (`pgx`+`sqlc` vs hand-written vs ORM), `indicator_sample` history/retention,
   Client-deletion ORN reservation, `realm` bootstrap, how much selector grammar pushes down to SQL,
   whether staged operations need their own state tables, `updated_at` vs a dedicated `row_version`.
+  *(Most of these are resolved in ADR-API-005.)*
+
+### ADR-API-005: implementation-planning decisions (Franz build)
+
+Decisions made while turning the specs into `franz/implementation_plan.md`. They update the draft specs
+`003.4` / `003.7` / `003.8` / `003.12` and add `003.13` (migration) and `003.14` (telemetry ingest).
+
+**Persistence & runtime (`003.12`).**
+- Query layer: **hand-written `pgx/v5`** — no ORM, no query generator. Dynamic `List*` filters built as
+  parameterised `WHERE` fragments in Go.
+- Lost-update prevention: **`SELECT … FOR UPDATE`** inside the update transaction. No version column, no
+  client token; last committed write wins across requests.
+- Realm bootstrap: **one `default` realm seeded in `V1__init.sql`**; a context resolver returns it for
+  every request until auth (`003.2`) carries the realm.
+- Config: **checked-in `config.yaml` + `FRANZ_`-prefixed env overrides via `koanf`** (supersedes the
+  `DB_*` convention in `106-operations`).
+
+**Placement (`003.7`).**
+- Absent `franz.affinity/selector` ⇒ **no candidates**; the channel's shards stay `PENDING` /
+  `kafka_cluster = NULL`.
+- No eligible cluster ⇒ shard stays unplaced; a **retry sweep (~30 s)** places it when a cluster
+  becomes eligible. Channel create never fails for this.
+- Re-placement of an already-placed shard: it is **never moved silently**. Losing eligibility marks it
+  *misplaced* and queues a migration (`003.13`) — **auto-relocate**. Interim (until the migration flow
+  lands): only the marker is set.
+
+**Governance (`003.8`).**
+- Write whitelist: **full enumerated matrix** (see `003.8`). Includes `channel_partitions` ↑/↓,
+  `franz.taint` = `no-creation` **or** `drain`, `franz.affinity/*` + `antiaffinity/*` edits,
+  `SET_STATUS` → `PAUSED` / `ACTIVE` / `DELETED` on channel and cluster. `KafkaTopic.state` is not
+  writable.
+- Conflict on the same `(resource, field)`: apply in `(weight desc, name asc)` order, **last write
+  wins**; every action logged.
+- **No anti-thrash** (no cooldown / hysteresis) — deferred until flapping is observed. Per-action
+  caps are the only bound.
+- Evaluation is **event-driven per incoming sample** (couples the eval loop to telemetry ingest).
+- Governance's placement / taint / re-shard actions all resolve to the migration flow (`003.13`);
+  until it lands they queue work that does not execute.
+
+**Telemetry ingest (`003.14`, new).**
+- Indicators are **pre-registered** by an admin — `CreateIndicator` / `UpdateIndicator` /
+  `DeleteIndicator` added to `GovernanceService`. Samples / policies for an unknown indicator are
+  rejected.
+- `indicator_sample` and `observed_consumer_group` are **append-only time series**, pruned nightly at
+  **30 days**. `ListIndicatorSamples` and `ListConsumerGroupObservations` added. "Current" value is
+  the latest `sample_at` per `(indicator, resource)`.
+
+**Migration & data movement (`003.13`, new).** The single flow behind re-placement, `drain`,
+cluster-delete-with-live-topics, re-shard, and the governance placement actions. v1 is **drain-based**
+— no historical byte copy; the serving position moves, not the bytes. A `shard_migration` bookkeeping
+table tracks phases. **On the critical path** — it blocks completing `003.7`, `003.3` cluster delete,
+`003.4` re-shard, and governance OQ1a–c.
+
+**Shard routing key** — deferred to a future **SDK/client ADR**; Franz stores only `channel_partitions`.
+
+**API authorization** — remains a `003.2` placeholder; near-term implementation stubs an allow-all
+interceptor behind the realm resolver.
