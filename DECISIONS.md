@@ -371,7 +371,7 @@ the authoritative placement selector. Adding a second label-bearing layer would 
 precedence rule that is not yet defined, so the wireframe deliberately omits a provider label editor rather
 than implying semantics that have not been decided.
 
-**Terminology fix.** `001.1-ux.md` previously deferred "Async Channel types and providers other than
+**Terminology fix.** `001-ux/README.md` previously deferred "Async Channel types and providers other than
 `kafka-topic`", where "provider" meant the technology implementing a channel — a different layer from this
 one. That bullet now reads "Async Channel types other than `kafka-topic`" to free the term.
 
@@ -490,7 +490,7 @@ a dry-run preview), `policy-detail.html` (definition + matched resources + actio
 and `indicator-detail.html` (unit, source agents, samples, policies using it). A stale indicator — no sample
 within its threshold — is surfaced as such and policies reading it do not act.
 
-**Deferred** (called out in `001.1-ux.md`): the evaluation model — weight-based conflict resolution,
+**Deferred** (called out in `001-ux/README.md`): the evaluation model — weight-based conflict resolution,
 ordering, cooldown / anti-thrash, per-field action constraints — and the telemetry protocol wire format.
 This is a UX example; the DSL and engine evolve separately.
 

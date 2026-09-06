@@ -1,44 +1,33 @@
 # KafkaMetamorphosis — Documentation
 
-This directory contains the technical documentation for the KafkaMetamorphosis system: a distributed platform for managing Kafka resources at scale across multiple clusters and locations.
+Specs and decision records for **KafkaMetamorphosis** — a control plane that makes
+running a fleet of Kafka clusters feel like using a managed queue: declare the
+channel you need, let the system place it on a cluster, and keep the whole fleet
+under governance.
 
-## Vision of the project
+## Systems
 
-Make Kafka management as easy as maintain managed queues like sqs or even make it easy as http connections by offering tools to keep kafka clusters under governance.
+- **Franz** — the control plane. Holds the declared state of every cluster,
+  channel, topic, client, and policy; exposes a gRPC + REST API; applies
+  fleet-wide governance.
+- **Gregor Samsa** — a per-cluster agent that reconciles Franz's declared topics
+  against the real Kafka cluster.
+- **Odradek** — a telemetry agent that publishes the SLO / indicator metrics
+  Franz's governance reacts to.
 
-### Franz (Control Plane)
+## Layout
 
-Franz is the central authority of the fleet. It maintains the desired state of all registered Kafka clusters and their resources — topics, ACLs, and related configuration. It exposes a management API and propagates desired state to reconcilers via Topic Claims, which track the binding between a Topic Definition and a target Cluster through their reconciliation lifecycle.
-
-### Gregor Samsa (Execution Plane / Reconciler)
-
-Gregor Samsa runs as a sidecar or agent scoped to a single Kafka cluster. It reads the desired state produced by Franz, reconciles it against the actual state of the cluster, and reports status updates back. Multiple Gregor Samsa instances run in parallel — one per cluster — forming the distributed execution layer of the system.
-
-## Documents
-
-### Specs
-
-| Document | Description |
+| Path | What |
 |---|---|
-| [001-architecture-overview.md](./001-architecture-overview.md) | High-level system architecture, full domain model, and all state machines. |
-| [002-monorepo-structure/002.0-monorepo-structure.md](./002-monorepo-structure/002.0-monorepo-structure.md) | Go monorepo layout — proto, hexagonal Franz, buf, grpc-gateway. |
-| [003-franz/README.md](./003-franz/README.md) | Franz overview, entity index, proto contract. |
-| [003-franz/003.1-conventions.md](./003-franz/003.1-conventions.md) | ORN, pagination, selector & label grammar, error conventions. |
-| [003-franz/003.2-api-authorization.md](./003-franz/003.2-api-authorization.md) | Console/API authorization — placeholder, model not yet decided. |
-| [003-franz/003.3-kafka-cluster.md](./003-franz/003.3-kafka-cluster.md) | Kafka Cluster — registration, config, provider link. |
-| [003-franz/003.4-async-channel.md](./003-franz/003.4-async-channel.md) | Async Channel — the customer-facing boundary; state machine. |
-| [003-franz/003.5-access-policy.md](./003-franz/003.5-access-policy.md) | Channel access policy — Allow/Deny evaluation for clients. |
-| [003-franz/003.6-kafka-topic.md](./003-franz/003.6-kafka-topic.md) | Kafka Topic — state machine, generation, consumption, config merge. |
-| [003-franz/003.7-placement-and-selection.md](./003-franz/003.7-placement-and-selection.md) | Placement — affinity, taints/tolerations, shard-size. |
-| [003-franz/003.8-governance.md](./003-franz/003.8-governance.md) | Governance — policies, indicators, actions, evaluation. |
-| [003-franz/003.9-agents.md](./003-franz/003.9-agents.md) | Agent registry; interaction model deferred to a separate ADR. |
-| [003-franz/003.10-clients.md](./003-franz/003.10-clients.md) | Client identity and consumer-group observation. |
-| [003-franz/003.11-lifecycle-and-operations.md](./003-franz/003.11-lifecycle-and-operations.md) | Pause/resume, soft delete, migration, signal history. |
-| [003-franz/003.12-persistence-and-data-model.md](./003-franz/003.12-persistence-and-data-model.md) | PostgreSQL schema — table-per-entity, jsonb for maps/documents, materialized topic config, migrations. |
-| [004-kafka-topic-reconciliation/004-reconciliation.md](./004-kafka-topic-reconciliation/004-reconciliation.md) | Gregor Samsa reconciliation loop — full service spec, poll/inform contract, retry, error handling. |
+| [`001-architecture-overview.md`](./001-architecture-overview.md) | System architecture, domain model, state machines |
+| [`001-ux/`](./001-ux/README.md) | Franz UX RFC + clickable prototype (`demo/`) |
+| [`002-monorepo-structure/`](./002-monorepo-structure/README.md) | Go monorepo layout — proto, hexagonal Franz, buf, grpc-gateway |
+| [`003-franz/`](./003-franz/README.md) | Franz specs — entities, conventions, placement, governance, persistence |
+| [`004-kafka-topic-reconciliation/`](./004-kafka-topic-reconciliation/004-reconciliation.md) | Gregor Samsa reconciliation loop |
+| [`005-odradek/`](./005-odradek/005-odradek.md) | Odradek telemetry agent |
+| [`006-operations/`](./006-operations/006.0-overview.md) | Deployment, configuration, observability |
+| [`DECISIONS.md`](./DECISIONS.md) | Architecture Decision Records |
 
-### Operations
-
-| Document | Description |
-|---|---|
-| [006-operations/006.0-overview.md](./006-operations/006.0-overview.md) | Deployment, configuration, observability, and operational procedures. |
+Every spec carries a `Status:` — `ready`, `draft`, or an explicit placeholder.
+The `.proto` files under `franz/api/franz/v1/` are authoritative for API shapes;
+the `003-franz/` docs own semantics, invariants, and cross-entity behaviour.
