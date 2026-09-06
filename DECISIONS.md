@@ -557,6 +557,17 @@ suits FieldMask-based partial updates and distinguishing "unset" from a zero val
 `docs/003-franz/` specs describe intent and semantics; the `.proto` files are authoritative for
 message and service shapes.
 
+**Codegen note (deliverable 01).** Edition 2024 **defaults `api_level` to `API_OPAQUE`** in
+`protoc-gen-go` (≥ v1.36) — hidden fields, `Get*`/`Set*` accessors. The `default_api_level=` /
+`apilevelM<path>=` plugin flags are **ignored** for edition-2024 files (the edition default wins); the
+only way to force the open API back is `option features.(pb.go).api_level = API_OPEN;` *in the
+`.proto`* — which we do not do. Instead: **`protoc-gen-grpc-gateway` is run with
+`use_opaque_api=true`** (its default `false` emits Open-Struct field access — `protoReq.Name = …` —
+that will not compile against opaque messages; with the flag it emits `protoReq.SetName(…)`). Opaque
+support requires grpc-gateway ≥ v2.27.3 (edition-2024 support ≥ v2.29.0; latest is v2.30.0).
+`buf.gen.yaml` lives at the `franz/` root; `buf.yaml` + `buf.lock` under `api/`. `go.mod` is `go 1.25`
+(transitive gRPC requirement).
+
 Files: `common`, `kafka` (`KafkaCluster` + `KafkaTopic`, consumption, traffic share, both services),
 `async_channel` (+ access policy), `agent` (registry only), `client`, `governance` (`Policy` + `Indicator`),
 `telemetry`. **The agent ↔ Franz interaction model (how agents receive work and report results) is deferred
@@ -871,3 +882,34 @@ table tracks phases. **On the critical path** — it blocks completing `003.7`, 
 
 **API authorization** — remains a `003.2` placeholder; near-term implementation stubs an allow-all
 interceptor behind the realm resolver.
+
+### ADR-006: Cluster Provider agent + local Kafka Docker agent
+
+Full doc: `004-local-kafka-docker-agent/README.md`. The first agent-interaction contract (Cluster
+Providers) and the first agent implementation. Feature 1 of `franz/docs/impls_plan/`.
+
+- **Transport** — `ClusterProviderService.WatchClusterAssignments` (server-stream, Franz → agent, full
+  set on open then deltas) + `ReportClusterStatus` (unary). New `agent_cluster_provider.proto`. Franz
+  holds an in-memory per-agent stream registry.
+- **Auth** — a **bearer token minted at `CreateAgent`**, returned once, stored hashed on the `agent`
+  row; `authorization: Bearer` metadata; `RotateAgentToken` RPC. Self-contained, independent of `003.2`.
+- **Provisioning intent** — expressed with **`franz.provisioning/*` reserved labels** on
+  `KafkaCluster.labels` (`deployment-type`, `kafka-version`, `brokers`, `disk-size`, …). No new
+  `KafkaCluster` field; the prefix is open. Added to the `003.1` reserved-label set.
+- **Status** — the agent's reports are an **append-only `cluster_provider_event`** log (30-day prune);
+  current status = the latest event, surfaced as `KafkaCluster.provider_status` (read-only, distinct
+  from `state` = operator intent) + a `ListClusterProviderEvents` RPC.
+- **Recipe** — **agent-owned**, selected by `franz.provisioning/deployment-type`; the agent reports
+  `recipe_ref` (name + rendered-spec hash).
+- **Agent implementation** — **Go, in the Franz module** (`cmd/local-kafka-agent/`,
+  `pkg/localkafka/`); **Docker Engine API SDK** (no compose); **stateless** — Docker container labels
+  (`franz.cluster`, `franz.managed-by`, `franz.recipe-hash`) are the store.
+- **`local-docker` recipe** — one `apache/kafka` KRaft container per cluster; version from the label;
+  `brokers > 1` warned + ignored (multi-broker deferred).
+- **Proto** — `agent.proto`: `token` in `CreateAgentResponse`, `RotateAgentToken`.
+  `common.proto`: `ClusterProviderPhase`. `kafka.proto`: `KafkaCluster.provider_status`,
+  `ClusterProviderStatus`, `ClusterProviderEvent`, `ListClusterProviderEvents`.
+  New `agent_cluster_provider.proto`.
+- **Still open** (ADR §Open questions): multi-broker recipe, `READY` vs `DEGRADED` health probe, local
+  port conflicts, a derived "agent connected" flag, non-bundled recipe distribution,
+  `cluster_provider_event` retention.

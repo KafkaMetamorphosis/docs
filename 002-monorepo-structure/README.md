@@ -4,6 +4,10 @@ Status: **ready**
 
 Replaces the former `002-clojure-projects-structure.md` (Clojure layout; removed).
 
+**Update (2026-09-06, deliverable 01).** The Go module is rooted at `franz/`, not
+the repo root — that is where the git repository and the `franz.git` remote
+physically live. Layout paths are relative to `franz/`.
+
 ## Context
 
 Franz and its agents move from a Clojure multi-project setup to a single **Go monorepo**.
@@ -15,32 +19,38 @@ The control-plane / agent (data-plane) split from `001-architecture-overview` is
 
 ### Module
 
-One Go module at the repo root: `github.com/KafkaMetamorphosis/franz`.
-Import paths therefore read `…/franz/pkg/franz/core/domain`; the `franz/pkg/franz` repetition is accepted.
+The Go module is rooted at **`franz/`** — a subdirectory of the working tree and
+its own git repository (`git@github.com:KafkaMetamorphosis/franz.git`). Module
+path: `github.com/KafkaMetamorphosis/franz`. Import paths read
+`…/franz/pkg/franz/core/domain`; the `franz/pkg/franz` repetition is accepted.
 
-### Top-level layout
+The working-tree root (`KafkaMetamorphosis/`) is a **plain directory**, not a
+module and not a git repo — it holds `franz/`, `docs/` (its own git repo), and
+the legacy agent directories. All paths below are **relative to `franz/`**.
+
+### Layout (under `franz/`)
 
 ```
-/api/
-  proto/              .proto sources — the single API contract (console + agents)
+api/
+  franz/v1/           .proto sources — the single API contract (console + agents)
   buf.yaml, buf.gen.yaml
-/cmd/
+cmd/
   franz/              main.go — control-plane binary
-  gregor-samsa/       main.go — Resource Provider agent
-  odradek/            main.go — Telemetry Agent
-/pkg/
+  local-kafka-agent/  main.go — local Docker Cluster Provider agent
+pkg/
   franz/              control plane (hexagonal, see below)
-  gregorsamsa/        agent — plain package, no prescribed structure
-  odradek/            agent — plain package, no prescribed structure
-  shared/             domain-agnostic helpers: label selectors, ORN, telemetry client, logging
+  localkafka/         local-kafka-agent internals — plain packages
+  shared/             domain-agnostic helpers: label selectors, ORN, logging
   gen/go/             generated Go stubs — committed; CI verifies they are current
-/webconsole/          React application (Vite)
-/migrations/          SQL migrations (Flyway)
+webconsole/           React application (Vite)
+migrations/           SQL migrations (Flyway)
+docs/impls_plan/      the build plan (one file per deliverable)
 ```
 
-Only **Franz** is bound to the structure and conventions below. **Agents are deliberately simple**:
-Gregor Samsa and Odradek need no hexagonal split, no `fx`.
-The only hard contract an agent must honour is the protobuf/gRPC API in `/api/`.
+Gregor Samsa and Odradek remain **separate top-level projects** (their own repos /
+free to use another language); the only hard contract an agent must honour is the
+protobuf/gRPC API in `franz/api/`. Agents in this module (e.g. `local-kafka-agent`)
+are **deliberately simple** — plain packages, no hexagonal split, no `fx`.
 
 ### Franz — hexagonal architecture
 

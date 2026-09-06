@@ -23,6 +23,7 @@ under governance.
 | [`001-ux/`](./001-ux/README.md) | Franz UX RFC + clickable prototype (`demo/`) |
 | [`002-monorepo-structure/`](./002-monorepo-structure/README.md) | Go monorepo layout — proto, hexagonal Franz, buf, grpc-gateway |
 | [`003-franz/`](./003-franz/README.md) | Franz specs — entities, conventions, placement, governance, persistence |
+| [`004-local-kafka-docker-agent/`](./004-local-kafka-docker-agent/README.md) | First Cluster Provider agent — interaction contract + local Docker recipe |
 | [`104-kafka-topic-reconciliation/`](./104-kafka-topic-reconciliation/004-reconciliation.md) | Gregor Samsa reconciliation loop |
 | [`105-odradek/`](./105-odradek/005-odradek.md) | Odradek telemetry agent |
 | [`106-operations/`](./106-operations/006.0-overview.md) | Deployment, configuration, observability |
