@@ -40,7 +40,7 @@ cmd/
 pkg/
   franz/              control plane (hexagonal, see below)
   localkafka/         local-kafka-agent internals — plain packages
-  shared/             domain-agnostic helpers: label selectors, ORN, logging
+  shared/             domain-agnostic helpers: label selectors, FRN, logging
   gen/go/             generated Go stubs — committed; CI verifies they are current
 webconsole/           React application (Vite)
 migrations/           SQL migrations (Flyway)

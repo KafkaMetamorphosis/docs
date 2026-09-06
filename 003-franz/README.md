@@ -63,7 +63,7 @@ the doc wins for meaning. See `003.1-conventions.md` for the rules common to all
 | Term | Meaning |
 |---|---|
 | **Realm** | Tenant and authorization boundary. Every resource belongs to exactly one. |
-| **ORN** | `orn:<realm>:<type>:<name>` — opaque, server-assigned identifier. |
+| **FRN** | `frn:<realm>:<type>:<name>` — opaque, server-assigned identifier. |
 | **Async Channel** | The customer-facing async communication boundary. Only type: `kafka-topic`. |
 | **Kafka Topic** | One generated topic of a channel, placed on one cluster; tracks reconciliation and consumption. |
 | **Kafka Cluster** | A registered Kafka cluster: connection strings, fleet-context labels, default config, optional provider agent. |
@@ -81,7 +81,7 @@ the doc wins for meaning. See `003.1-conventions.md` for the rules common to all
 
 | # | Document | Covers |
 |---|---|---|
-| `003.1` | Conventions | ORN, realm, pagination, the one selector grammar, reserved labels, errors |
+| `003.1` | Conventions | FRN, realm, pagination, the one selector grammar, reserved labels, errors |
 | `003.2` | API Authorization | Placeholder — console/API authz model not yet decided |
 | `003.3` | Kafka Cluster | Registration, `state` (active/paused/deleted), config-merge base layer |
 | `003.4` | Async Channel | The declared resource; `state` (active/paused/deleted), sharding into N Kafka Topics, re-shard flow |

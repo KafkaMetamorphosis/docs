@@ -157,7 +157,7 @@ The creation flow collects the channel identity, one label-based context, and an
 
 ### Channel access policy
 
-Every channel carries **one access policy document**, in the style of an S3 bucket policy. It is a list of statements; each statement has an **effect** (`Allow` or `Deny`), a **principal** — a client ORN, a label selector (`=` and `IN (…)`), or both — and one or more permissions (`Read`, `Write`). `*` is a wildcard in the ORN and in label values.
+Every channel carries **one access policy document**, in the style of an S3 bucket policy. It is a list of statements; each statement has an **effect** (`Allow` or `Deny`), a **principal** — a client FRN, a label selector (`=` and `IN (…)`), or both — and one or more permissions (`Read`, `Write`). `*` is a wildcard in the FRN and in label values.
 
 Evaluation for a `(client, action)` is: among statements whose principal matches the client and whose permissions include the action, an explicit `Deny` wins; otherwise an explicit `Allow` grants; otherwise no access. Franz is **zero trust** — a client that matches no `Allow` has nothing. This lets a broad `Allow` (`…client:xpto-*`) coexist with a narrow `Deny` (`…client:xpto-blah`).
 
@@ -193,7 +193,7 @@ The channel detail experience shows:
 
 A **client** is a fleet-wide identity that reads from or writes to Async Channels through the Franz SDK. A client has:
 
-- A **name**, globally unique, which is also its ORN (`orn:acme-platform:client:<name>`) and the prefix of its default consumer groups.
+- A **name**, globally unique, which is also its FRN (`frn:acme-platform:client:<name>`) and the prefix of its default consumer groups.
 - **Labels** — at least `org.com/owner`. Labels are what channel access policies match against.
 
 A client carries **no Read/Write role**. Every permission comes from the access policy of the channel it connects to.
@@ -210,7 +210,7 @@ Consumer groups are **not registered** in Franz. When a client subscribes to a c
 
 ### SDK
 
-The SDK is initialised with the channel ORN and the client ORN. Franz evaluates the channel's access policy against the client before allowing publish or subscribe. Client credentials and connection testing are outside this scope.
+The SDK is initialised with the channel FRN and the client FRN. Franz evaluates the channel's access policy against the client before allowing publish or subscribe. Client credentials and connection testing are outside this scope.
 
 ## Lifecycle and Control-Plane Status
 

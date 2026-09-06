@@ -39,7 +39,7 @@
           <div class="panel-header"><div><h2 id="create-title">Channel details</h2><p class="panel-note">A `kafka-topic` channel generates one or more linked Kafka Topic entities.</p></div></div>
           <div class="panel-body form-layout"><form action="async-channels.html">
             <div class="form-section"><h3>Channel details</h3><p class="form-help">The Async Channel is the primary resource managed by your service team.</p>
-              <div class="field"><label for="channel-name">Channel name <small>Unique within your authorized scope.</small></label><div><input id="channel-name" required placeholder="for example, order-events"><p class="field-note">Franz uses channel information to generate the Kafka topic name and channel ORN.</p></div></div>
+              <div class="field"><label for="channel-name">Channel name <small>Unique within your authorized scope.</small></label><div><input id="channel-name" required placeholder="for example, order-events"><p class="field-note">Franz uses channel information to generate the Kafka topic name and channel FRN.</p></div></div>
               <div class="field"><label for="channel-type">Channel type</label><div><select id="channel-type" aria-describedby="channel-type-note"><option value="kafka-topic">Kafka topic</option></select><p class="field-note" id="channel-type-note">Kafka topic is the only supported type in the current experience.</p></div></div>
               <div class="field"><label for="channel-partitions">Channel partitions <small>Number of generated topics.</small></label><div><input id="channel-partitions" type="number" min="1" step="1" value="1" required><p class="field-note">This controls how many Kafka topics Franz creates for the Async Channel. It is distinct from Kafka topic partitions.</p></div></div>
             </div>
@@ -48,13 +48,13 @@
               <div class="field"><label for="context-country">Country <small><code>org.com/country</code></small></label><div><select id="context-country" required><option value="br">br</option><option value="us">us</option><option value="co">co</option><option value="mx">mx</option></select></div></div>
               <div class="field"><label for="context-shard">Shard <small><code>org.com/shard</code></small></label><div><select id="context-shard" required><option value="s0">s0</option><option value="s1">s1</option><option value="s2">s2</option><option value="s3">s3</option><option value="s4">s4</option><option value="s5">s5</option><option value="s6">s6</option><option value="s7">s7</option><option value="s8" selected>s8</option></select><p class="field-note">Franz persists this as the authoritative selector: <code>org.com/env</code>, <code>org.com/country</code>, and <code>org.com/shard</code>. Readable summary: <strong>br-prod-s8</strong>.</p></div></div>
             </div>
-            <div class="form-section"><h3>Access policy</h3><p class="form-help">Which clients may use this channel, in the style of an S3 bucket policy. Each statement Allows or Denies; an explicit Deny always wins, and a client with no matching Allow has no access (zero trust). <code>*</code> is a wildcard in the ORN and in label values. Editable later on the channel.</p>
+            <div class="form-section"><h3>Access policy</h3><p class="form-help">Which clients may use this channel, in the style of an S3 bucket policy. Each statement Allows or Denies; an explicit Deny always wins, and a client with no matching Allow has no access (zero trust). <code>*</code> is a wildcard in the FRN and in label values. Editable later on the channel.</p>
               <div class="field"><label>Statements</label><div>
                 <div class="label-builder" aria-label="Access policy statements">
                   <textarea id="stmt-principal" aria-label="Principal" rows="2" placeholder="org.com/owner=payments-team, org.com/env=prod"></textarea>
                   <div class="label-builder-controls">
                     <select id="stmt-effect" aria-label="Effect"><option value="allow">Allow</option><option value="deny">Deny</option></select>
-                    <select id="stmt-kind" aria-label="Principal type"><option value="labels">Labels</option><option value="orn">Client ORN</option></select>
+                    <select id="stmt-kind" aria-label="Principal type"><option value="labels">Labels</option><option value="frn">Client FRN</option></select>
                     <select id="stmt-permission" aria-label="Permission"><option value="read">Read</option><option value="write">Write</option><option value="read write">Read &amp; Write</option></select>
                     <button class="button" id="add-stmt" type="button">Add statement</button>
                   </div>
@@ -84,8 +84,8 @@ Configuration: partitions, retention, replication factor, and additional Kafka t
     const stmtStatus = document.querySelector('#stmt-status');
 
     stmtKind.addEventListener('change', () => {
-      stmtPrincipal.placeholder = stmtKind.value === 'orn'
-        ? 'orn:acme-platform:client:billing-ingestor'
+      stmtPrincipal.placeholder = stmtKind.value === 'frn'
+        ? 'frn:acme-platform:client:billing-ingestor'
         : 'org.com/owner=payments-team';
     });
 
@@ -94,7 +94,7 @@ Configuration: partitions, retention, replication factor, and additional Kafka t
       statements.forEach((statement, index) => {
         const tag = document.createElement('span');
         tag.className = 'tag editable-tag';
-        const label = statement.kind === 'orn' ? 'ORN' : 'Labels';
+        const label = statement.kind === 'frn' ? 'FRN' : 'Labels';
         const effect = statement.effect[0].toUpperCase() + statement.effect.slice(1);
         const perms = statement.perms.map((p) => p[0].toUpperCase() + p.slice(1)).join(' & ');
         tag.append(`${effect} · ${label} ${statement.principal} → ${perms}`);
@@ -108,8 +108,8 @@ Configuration: partitions, retention, replication factor, and additional Kafka t
         stmtTags.append(tag);
       });
       const body = statements.map((statement) => {
-        const principal = statement.kind === 'orn'
-          ? `{:orn "${statement.principal}"}`
+        const principal = statement.kind === 'frn'
+          ? `{:frn "${statement.principal}"}`
           : `{:labels "${statement.principal}"}`;
         const permissions = statement.perms.map((p) => `:${p}`).join(' ');
         return `  {:effect :${statement.effect} :principal ${principal} :permissions [${permissions}]}`;
@@ -124,7 +124,7 @@ Configuration: partitions, retention, replication factor, and additional Kafka t
     document.querySelector('#add-stmt').addEventListener('click', () => {
       const principal = stmtPrincipal.value.trim();
       if (!principal) {
-        stmtPrincipal.setCustomValidity('Enter a label selector or a client ORN.');
+        stmtPrincipal.setCustomValidity('Enter a label selector or a client FRN.');
         stmtPrincipal.reportValidity();
         return;
       }

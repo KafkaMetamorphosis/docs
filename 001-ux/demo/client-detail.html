@@ -34,23 +34,23 @@
       </nav>
       <main class="content">
         <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="clients.html">Clients</a><span>/</span> billing-settlement-worker</div>
-        <div class="page-heading"><div><h1>billing-settlement-worker</h1><p class="lead">Client<small class="resource-id">orn:acme-platform:client:billing-settlement-worker</small></p></div><div><a class="button" href="register-client.html">Edit client</a> <a class="button danger" href="#lifecycle">Delete client</a></div></div>
+        <div class="page-heading"><div><h1>billing-settlement-worker</h1><p class="lead">Client<small class="resource-id">frn:acme-platform:client:billing-settlement-worker</small></p></div><div><a class="button" href="register-client.html">Edit client</a> <a class="button danger" href="#lifecycle">Delete client</a></div></div>
 
         <section class="panel" aria-labelledby="identity-title">
           <div class="panel-header"><div><h2 id="identity-title">Identity</h2><p class="panel-note">A client is only an identity and labels. Permissions come from channel access policies.</p></div></div>
           <div class="table-wrap"><table><tbody>
             <tr><th scope="row">Name</th><td>billing-settlement-worker</td></tr>
-            <tr><th scope="row">ORN</th><td><code>orn:acme-platform:client:billing-settlement-worker</code></td></tr>
+            <tr><th scope="row">FRN</th><td><code>frn:acme-platform:client:billing-settlement-worker</code></td></tr>
             <tr><th scope="row">Labels</th><td><span class="tag">org.com/owner=payments-team</span><span class="tag">org.com/env=prod</span><span class="tag">org.com/team=settlement</span></td></tr>
             <tr><th scope="row">Default consumer group</th><td><code>billing-settlement-worker.&lt;topic&gt;</code> — one group per topic unless the SDK passes a custom name</td></tr>
           </tbody></table></div>
         </section>
 
         <section class="panel" aria-labelledby="access-title">
-          <div class="panel-header"><div><h2 id="access-title">Channel access</h2><p class="panel-note">Derived from every channel access policy whose statements match this client's ORN or labels.</p></div></div>
+          <div class="panel-header"><div><h2 id="access-title">Channel access</h2><p class="panel-note">Derived from every channel access policy whose statements match this client's FRN or labels.</p></div></div>
           <div class="table-wrap"><table><thead><tr><th>Channel</th><th>Permission</th><th>Granted by</th></tr></thead><tbody>
             <tr><td><a href="async-channel-detail.html">billing-events</a></td><td><span class="tag">Read</span></td><td>statement matched <code>org.com/owner=payments-team</code></td></tr>
-            <tr><td><a href="async-channel-detail.html">payment-authorizations</a></td><td><span class="tag">Read</span></td><td>statement matched ORN <code>orn:acme-platform:client:billing-settlement-worker</code></td></tr>
+            <tr><td><a href="async-channel-detail.html">payment-authorizations</a></td><td><span class="tag">Read</span></td><td>statement matched FRN <code>frn:acme-platform:client:billing-settlement-worker</code></td></tr>
           </tbody></table></div>
         </section>
 
@@ -64,7 +64,7 @@
         </section>
 
         <section class="panel" id="lifecycle" aria-labelledby="lifecycle-title">
-          <div class="panel-header"><div><h2 id="lifecycle-title">Lifecycle</h2><p class="panel-note">Deleting a client revokes it from every channel policy that matched it by ORN. Label-matched grants stop applying once the identity is gone.</p></div><a class="button danger" href="#lifecycle">Delete client</a></div>
+          <div class="panel-header"><div><h2 id="lifecycle-title">Lifecycle</h2><p class="panel-note">Deleting a client revokes it from every channel policy that matched it by FRN. Label-matched grants stop applying once the identity is gone.</p></div><a class="button danger" href="#lifecycle">Delete client</a></div>
         </section>
       </main>
     </div>

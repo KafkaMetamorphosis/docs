@@ -34,7 +34,7 @@
       </nav>
       <main class="content">
         <div class="breadcrumbs"><a href="home.html">Console Home</a><span>/</span> <a href="async-channels.html">Async Channels</a><span>/</span> billing-events</div>
-        <div class="page-heading"><div><h1>billing-events</h1><p class="lead"><code>kafka-topic</code> Async Channel <span class="status">Active</span><small class="resource-id">orn:acme-platform:async-channel:billing-events</small></p></div><div><a class="button" href="#channel-details">Edit channel</a> <a class="button danger" href="#pause-channel">Pause channel</a></div></div>
+        <div class="page-heading"><div><h1>billing-events</h1><p class="lead"><code>kafka-topic</code> Async Channel <span class="status">Active</span><small class="resource-id">frn:acme-platform:async-channel:billing-events</small></p></div><div><a class="button" href="#channel-details">Edit channel</a> <a class="button danger" href="#pause-channel">Pause channel</a></div></div>
         <section class="panel" id="channel-details" aria-labelledby="channel-details-title">
           <div class="panel-header"><div><h2 id="channel-details-title">Channel details</h2><p class="panel-note">The channel declares the intent; Franz creates and maintains its generated Kafka Topics.</p></div></div>
           <div class="panel-body"><div class="stats" style="margin-bottom:0">
@@ -51,25 +51,25 @@
         <section class="panel" id="access-policy" aria-labelledby="access-policy-title">
           <div class="panel-header"><div><h2 id="access-policy-title">Access policy</h2><p class="panel-note">One policy document per channel, in the style of an S3 bucket policy. Each statement Allows or Denies; an explicit Deny always wins, then an explicit Allow, otherwise no access (zero trust).</p></div><a class="button" href="#access-policy">Edit policy</a></div>
           <div class="table-wrap"><table><thead><tr><th>Effect</th><th>Principal</th><th>Permissions</th></tr></thead><tbody>
-            <tr><td><span class="status">Allow</span></td><td>ORN <code>orn:acme-platform:client:billing-*</code></td><td><span class="tag">Write</span></td></tr>
+            <tr><td><span class="status">Allow</span></td><td>FRN <code>frn:acme-platform:client:billing-*</code></td><td><span class="tag">Write</span></td></tr>
             <tr><td><span class="status">Allow</span></td><td>Labels <span class="tag">org.com/team=settlement</span></td><td><span class="tag">Read</span></td></tr>
             <tr><td><span class="status">Allow</span></td><td>Labels <span class="tag">org.com/owner=data-platform</span></td><td><span class="tag">Read</span></td></tr>
-            <tr><td><span class="status paused">Deny</span></td><td>ORN <code>orn:acme-platform:client:billing-sandbox</code></td><td><span class="tag">Read</span><span class="tag">Write</span></td></tr>
+            <tr><td><span class="status paused">Deny</span></td><td>FRN <code>frn:acme-platform:client:billing-sandbox</code></td><td><span class="tag">Read</span><span class="tag">Write</span></td></tr>
           </tbody></table></div>
           <div class="panel-body">
-            <div class="code-box">{:channel "orn:acme-platform:async-channel:billing-events"
+            <div class="code-box">{:channel "frn:acme-platform:async-channel:billing-events"
  :statements
- [{:effect :allow :principal {:orn "orn:acme-platform:client:billing-*"}       :permissions [:write]}
+ [{:effect :allow :principal {:frn "frn:acme-platform:client:billing-*"}       :permissions [:write]}
   {:effect :allow :principal {:labels "org.com/team=settlement"}               :permissions [:read]}
   {:effect :allow :principal {:labels "org.com/owner=data-platform"}           :permissions [:read]}
-  {:effect :deny  :principal {:orn "orn:acme-platform:client:billing-sandbox"} :permissions [:read :write]}]}</div>
-            <p class="field-note">A statement matches by ORN, by labels (<code>=</code> and <code>IN (…)</code>), or both. <code>*</code> is a wildcard in the ORN and in label values. <code>:permissions</code> is one or more of <code>:read</code> <code>:write</code>.</p>
+  {:effect :deny  :principal {:frn "frn:acme-platform:client:billing-sandbox"} :permissions [:read :write]}]}</div>
+            <p class="field-note">A statement matches by FRN, by labels (<code>=</code> and <code>IN (…)</code>), or both. <code>*</code> is a wildcard in the FRN and in label values. <code>:permissions</code> is one or more of <code>:read</code> <code>:write</code>.</p>
           </div>
         </section>
         <section class="panel" aria-labelledby="clients-title">
           <div class="panel-header"><div><h2 id="clients-title">Clients with access</h2><p class="panel-note">Registered clients evaluated against the policy above.</p></div></div>
           <div class="table-wrap"><table><thead><tr><th>Client</th><th>Owner</th><th>Effective permission</th><th>Matched by</th></tr></thead><tbody>
-            <tr><td><a href="client-detail.html">billing-ingestor</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Write</span></td><td>Allow — ORN <code>billing-*</code></td></tr>
+            <tr><td><a href="client-detail.html">billing-ingestor</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Write</span></td><td>Allow — FRN <code>billing-*</code></td></tr>
             <tr><td><a href="client-detail.html">billing-settlement-worker</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Read</span></td><td>Allow — labels <code>org.com/team=settlement</code></td></tr>
             <tr><td><a href="client-detail.html">analytics-loader</a></td><td><span class="tag">org.com/owner=data-platform</span></td><td><span class="tag">Read</span></td><td>Allow — labels <code>org.com/owner=data-platform</code></td></tr>
             <tr><td><a href="client-detail.html">billing-sandbox</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="status paused">None</span></td><td>Deny wins — matched Allow <code>billing-*</code> and Deny <code>billing-sandbox</code></td></tr>
@@ -78,7 +78,7 @@
         <section class="panel" aria-labelledby="discovery-title">
           <div class="panel-header"><div><h2 id="discovery-title">Discovery and SDK usage</h2><p class="panel-note">The Franz SDK is the only supported way for a service to discover and use this Async Channel.</p></div></div>
           <div class="panel-body">
-            <p>Initialise the SDK with the channel ORN and the client ORN, and provide the client's Franz token through an environment variable. Franz evaluates this channel's access policy against the client before allowing publish or subscribe; the SDK then resolves the channel's current Kafka location.</p>
+            <p>Initialise the SDK with the channel FRN and the client FRN, and provide the client's Franz token through an environment variable. Franz evaluates this channel's access policy against the client before allowing publish or subscribe; the SDK then resolves the channel's current Kafka location.</p>
             <div class="code-box">export FRANZ_TOKEN=&lt;your-franz-access-token&gt;</div>
             <div class="sdk-tabs" role="tablist" aria-label="SDK language examples">
               <button class="sdk-tab" id="java-tab" type="button" role="tab" aria-selected="true" aria-controls="java-example">Java</button>
@@ -86,16 +86,16 @@
             </div>
             <div class="sdk-code" id="java-example" role="tabpanel" aria-labelledby="java-tab"><div class="code-box">// Illustrative Franz SDK API
 var channel = FranzAsyncClient.builder()
-    .channelOrn(&quot;orn:acme-platform:async-channel:billing-events&quot;)
-    .clientOrn(&quot;orn:acme-platform:client:billing-ingestor&quot;)
+    .channelFrn(&quot;frn:acme-platform:async-channel:billing-events&quot;)
+    .clientFrn(&quot;frn:acme-platform:client:billing-ingestor&quot;)
     .token(System.getenv(&quot;FRANZ_TOKEN&quot;))
     .build();
 
 channel.publish(event);</div></div>
             <div class="sdk-code" id="go-example" role="tabpanel" aria-labelledby="go-tab" hidden><div class="code-box">// Illustrative Franz SDK API
 channel, err := franz.New(franz.Config{
-    ChannelORN: &quot;orn:acme-platform:async-channel:billing-events&quot;,
-    ClientORN:  &quot;orn:acme-platform:client:billing-ingestor&quot;,
+    ChannelFRN: &quot;frn:acme-platform:async-channel:billing-events&quot;,
+    ClientFRN:  &quot;frn:acme-platform:client:billing-ingestor&quot;,
     Token:      os.Getenv(&quot;FRANZ_TOKEN&quot;),
 })
 if err != nil { return err }
@@ -106,9 +106,9 @@ return channel.Publish(ctx, event)</div></div>
         <section class="panel" aria-labelledby="topics-title">
           <div class="panel-header"><div><h2 id="topics-title">Generated Kafka Topics</h2><p class="panel-note">Each channel partition is a Kafka Topic. <strong>Traffic share</strong> is the portion of channel traffic written to each topic over the last 24 hours. Disabling consumption drains a topic — producers stop writing to it and its share drops to 0% — while the topic and its data are kept.</p></div></div>
           <div class="table-wrap"><table><thead><tr><th>Topic</th><th>Kafka configuration overview</th><th>Location</th><th>Traffic share</th><th>Control-plane status</th><th>Consumption</th><th aria-label="Actions"></th></tr></thead><tbody>
-            <tr data-topic="p0"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p0</code></a><small class="resource-id">orn:acme-platform:kafka-topic:franz.billing-events.v1-p0</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-01">br-prod-s8-kafka-01</a><br><span class="tag">br-prod-s8</span></td><td>53%</td><td><span class="status">Ready</span></td><td><span class="status">Consuming</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Disable consumption</button></td></tr>
-            <tr data-topic="p1"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p1</code></a><small class="resource-id">orn:acme-platform:kafka-topic:franz.billing-events.v1-p1</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-02">br-prod-s8-kafka-02</a><br><span class="tag">br-prod-s8</span></td><td>47%</td><td><span class="status">Ready</span></td><td><span class="status">Consuming</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Disable consumption</button></td></tr>
-            <tr data-topic="p2"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p2</code></a><small class="resource-id">orn:acme-platform:kafka-topic:franz.billing-events.v1-p2</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-03">br-prod-s8-kafka-03</a><br><span class="tag">br-prod-s8</span></td><td data-prior-share="15%">0%</td><td><span class="status pending">Pending reconciliation</span></td><td><span class="status paused">Consumption disabled</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Enable consumption</button></td></tr>
+            <tr data-topic="p0"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p0</code></a><small class="resource-id">frn:acme-platform:kafka-topic:franz.billing-events.v1-p0</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-01">br-prod-s8-kafka-01</a><br><span class="tag">br-prod-s8</span></td><td>53%</td><td><span class="status">Ready</span></td><td><span class="status">Consuming</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Disable consumption</button></td></tr>
+            <tr data-topic="p1"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p1</code></a><small class="resource-id">frn:acme-platform:kafka-topic:franz.billing-events.v1-p1</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-02">br-prod-s8-kafka-02</a><br><span class="tag">br-prod-s8</span></td><td>47%</td><td><span class="status">Ready</span></td><td><span class="status">Consuming</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Disable consumption</button></td></tr>
+            <tr data-topic="p2"><td><a href="kafka-topic-detail.html"><code>franz.billing-events.v1-p2</code></a><small class="resource-id">frn:acme-platform:kafka-topic:franz.billing-events.v1-p2</small></td><td>12 Kafka partitions · RF 3 · 7 days retention</td><td><a href="kafka-clusters.html#br-prod-s8-kafka-03">br-prod-s8-kafka-03</a><br><span class="tag">br-prod-s8</span></td><td data-prior-share="15%">0%</td><td><span class="status pending">Pending reconciliation</span></td><td><span class="status paused">Consumption disabled</span></td><td><a class="button" href="kafka-topic-detail.html">View topic</a> <button class="button" type="button" data-action="toggle-consumption">Enable consumption</button></td></tr>
           </tbody></table></div>
         </section>
         <section class="panel" id="pause-channel" aria-labelledby="lifecycle-title">

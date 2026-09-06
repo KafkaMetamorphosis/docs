@@ -431,7 +431,7 @@ Page identities are unchanged: the list page is still titled "Kafka Clusters" wi
 in two directions at once: it collided with the existing use of "backend" for the technology implementing an
 Async Channel, and it reads as *the thing being managed* rather than *the system that supplies it*. Provider
 names the supplier of a capability, which is what the entity is. Renamed everywhere: screens
-(`providers.html`, `register-provider.html`), navigation, ORNs (`orn:acme-platform:provider:*`), form and
+(`providers.html`, `register-provider.html`), navigation, FRNs (`frn:acme-platform:provider:*`), form and
 element ids, scopes (`provider:create|read|update|delete`), and the prior UX decision records, which describe
 this same unshipped design rather than a shipped one.
 
@@ -464,8 +464,8 @@ the agent connects:
 **Consequences.** `providers.html` → `agents.html`, `register-provider.html` → `register-agent.html`. The
 per-mode deployment configuration blocks (Docker / MSK / Strimzi) were dropped from the register form:
 agents read deployment specifics from the fleet, they are not Franz-collected fields. The register form now
-collects identity, type, fleet API endpoint, and a context selector (`=` and `IN (…)`). ORNs are
-`orn:acme-platform:agent:*`; scopes are `agent:create|read|update|delete`. The Kafka Cluster list column and
+collects identity, type, fleet API endpoint, and a context selector (`=` and `IN (…)`). FRNs are
+`frn:acme-platform:agent:*`; scopes are `agent:create|read|update|delete`. The Kafka Cluster list column and
 registration selector are relabelled **Cluster Provider**, and one Cluster Provider agent may now serve many
 clusters (previously 1:1). Deployment modes survive only as example agent names.
 
@@ -516,7 +516,7 @@ removed in favour of the plain percentage column. `franz-console.css` is unchang
 
 ### UXD-010: Clients are label-only identities; permission lives entirely in the channel access policy
 
-**Clients.** A client is a fleet-wide identity — globally unique `name` (= ORN `orn:acme-platform:client:<name>`)
+**Clients.** A client is a fleet-wide identity — globally unique `name` (= FRN `frn:acme-platform:client:<name>`)
 plus labels (at least `org.com/owner`). It carries **no Read/Write role**: a client is just an identity, and
 every permission comes from the channel it connects to. Navigation: "Async Channels" becomes a
 `<details class="nav-group">` group holding **Channels** (`async-channels.html`) and **Clients**
@@ -524,8 +524,8 @@ every permission comes from the channel it connects to. Navigation: "Async Chann
 `client-detail.html`; scopes `client:*`.
 
 **Access policy.** Each channel has **one policy document** (S3-bucket-policy style): a list of statements,
-each with an **effect** (`Allow` / `Deny`, `EFFECT_UNSPECIFIED` rejected), a **principal** (client ORN,
-label selector, or both — `*` wildcard allowed in both the ORN and label values), and one or more
+each with an **effect** (`Allow` / `Deny`, `EFFECT_UNSPECIFIED` rejected), a **principal** (client FRN,
+label selector, or both — `*` wildcard allowed in both the FRN and label values), and one or more
 `permissions` (`Read` / `Write`). Evaluation for `(client, action)`: explicit `Deny` wins → explicit
 `Allow` → otherwise no access (**zero trust**). So a broad `Allow` (`client:xpto-*`) can coexist with a
 narrow `Deny` (`client:xpto-blah`). Authored on the channel (create form has a statement builder; detail
@@ -537,8 +537,8 @@ whose policy matches this client.
 to the SDK. Telemetry Agents observe running groups and link them to client + owner; the client-detail page
 lists them read-only. No group registry, no group config.
 
-**SDK.** Initialised with channel ORN + client ORN; Franz checks the policy before publish/subscribe. The
-`async-channel-detail.html` SDK snippets gained `.clientOrn(...)` / `ClientORN:`. Client credentials deferred.
+**SDK.** Initialised with channel FRN + client FRN; Franz checks the policy before publish/subscribe. The
+`async-channel-detail.html` SDK snippets gained `.clientFrn(...)` / `ClientFRN:`. Client credentials deferred.
 
 The new screens reuse existing table, `label-builder`, and `code-box` patterns. Two small CSS additions:
 `.label-builder-controls` now wraps (`flex-wrap: wrap`), and `.label-builder > textarea` is styled full-width
@@ -576,12 +576,12 @@ to a separate ADR — there is no `fleet.proto`.**
 Conventions (full detail in `003-franz/003.1-conventions.md`): **every RPC has its own `{Method}Request` and
 `{Method}Response`** — no shared or bare-resource returns, no `google.protobuf.Empty` (Delete returns an
 empty `{Method}Response`). Get/Create/Update responses wrap the resource in a single field.
-`PageRequest`/`PageResponse` from `common.proto`; label selectors and ORNs are strings; custom verbs use
-`:verb` (`:pause`, `:setConsumption`, `:dryRun`). buf lint `STANDARD` with **no exceptions**. ORN is
-`orn:<realm>:<type>:<name>` (realm = the tenant/authz boundary). Every timestamp field uses the `_at` suffix.
+`PageRequest`/`PageResponse` from `common.proto`; label selectors and FRNs are strings; custom verbs use
+`:verb` (`:pause`, `:setConsumption`, `:dryRun`). buf lint `STANDARD` with **no exceptions**. FRN is
+`frn:<realm>:<type>:<name>` (realm = the tenant/authz boundary). Every timestamp field uses the `_at` suffix.
 
 **Explicit requests, no `field_behavior`.** Every `Create*` / `Update*` / `DryRun*` request lists only the
-client-settable fields — it never embeds the resource message. Server-assigned fields (`orn`,
+client-settable fields — it never embeds the resource message. Server-assigned fields (`frn`,
 `created_at`, `updated_at`, derived `state`/`status`/`traffic_share`/`generation`) exist only on the
 resource message, which appears only in responses. `google.api.field_behavior` / `OUTPUT_ONLY` was dropped
 entirely: it's a doc-only annotation that only earned its keep under resource-embedded requests, which we no
@@ -700,11 +700,11 @@ see ADR-API-005.
 **Access Policy (`003.5`).**
 - One `AccessPolicy` per channel, embedded in `AsyncChannel`, replaced wholesale by `SetAccessPolicy` —
   no per-statement add/remove RPC. Data-plane only (SDK read/write); distinct from `003.2` API authz.
-- A `Principal` matches on `client_orn` **OR** a label selector (at least one set) — `*` glob per `003.1`.
+- A `Principal` matches on `client_frn` **OR** a label selector (at least one set) — `*` glob per `003.1`.
 - Evaluation for `(client, action)`: matched **DENY** wins → matched **ALLOW** → deny (zero trust).
   Order-independent. READ and WRITE evaluated separately. `EFFECT_UNSPECIFIED` rejected at write.
-- A statement whose `client_orn` resolves to no Client is **valid** (matches nothing) — supports
-  pre-provisioning and survives client deletion (ORNs are not reclaimed).
+- A statement whose `client_frn` resolves to no Client is **valid** (matches nothing) — supports
+  pre-provisioning and survives client deletion (FRNs are not reclaimed).
 - `Client` holds **no** permission of its own. Governance never writes access policies.
 - **Still open:** SDK enforcement point + live-connection behaviour on policy change, statement cap value,
   `ListChannelClients` evaluation cost, `matched_by` semantics on multi-match.
@@ -778,7 +778,7 @@ Note: the *data-plane* access policy (`003.5`) is decided and unaffected.
   not declaration).
 - `ListClientChannelAccess` and `ListObservedConsumerGroups` are **read-only projections** computed on
   read.
-- `DeleteClient` does not free the `name` / ORN; ORN-matched policy statements go dormant.
+- `DeleteClient` does not free the `name` / FRN; FRN-matched policy statements go dormant.
 - **Deferred:** client credentials (issuance / rotation / proof), connection testing.
 - **Still open:** owner-label enforcement, custom-group→client attribution, deletion cascade + name
   reuse, `ObservedConsumerGroup` retention, realm-wide vs future sub-scope.
@@ -788,7 +788,7 @@ Note: the *data-plane* access policy (`003.5`) is decided and unaffected.
 - **Pause** (cluster / channel / agent) is always reversible and never removes real-world resources:
   cluster = out of new placement, channel = its shards go `PAUSED`, agent = no work handed to it.
 - **Soft delete** (cluster / channel / topic / agent) → terminal `DELETED`, retained for audit,
-  `name` / ORN **never freed**, `FAILED_PRECONDITION` afterwards. Channel delete cascades to its shards.
+  `name` / FRN **never freed**, `FAILED_PRECONDITION` afterwards. Channel delete cascades to its shards.
   `Client` currently has no `DELETED` state — reconciling that is open.
 - **Cluster delete with live topics** and **shard migration** (drain taint / re-placement) share one
   unsolved problem: there is no data-movement RPC, mechanism, or safety guarantee — its **own ADR**.
@@ -806,7 +806,7 @@ Full doc: `003-franz/003.12-persistence-and-data-model.md`.
 - **PostgreSQL only.** Reached solely through `franz/pkg/franz/adapters/out/postgres/`, implementing
   `core/ports/out`; `core/domain` and `core/usecases` hold no SQL.
 - **Table per entity**, surrogate `id uuid` PK; domain identity is a `UNIQUE (realm_id, name)`
-  constraint plus a `UNIQUE` `orn` column. `name` is never reused (constraint is unconditional).
+  constraint plus a `UNIQUE` `frn` column. `name` is never reused (constraint is unconditional).
 - **`realm_id` on every table**; every query is realm-scoped.
 - **Enums = `text` + `CHECK`** (not PG `enum`); the proto enum is the source of truth.
 - **`jsonb` for maps and documents** — `labels`, `cluster_configuration`, `topic_configuration`
@@ -815,7 +815,7 @@ Full doc: `003-franz/003.12-persistence-and-data-model.md`.
 - **`kafka_topic` stores both** `topic_configuration` (override) and `materialized_configuration` (the
   frozen `cluster_configuration ⊕ topic_configuration` the agent reconciles against — matches the
   "`cluster_configuration` edits hit new topics only" rule from `003.3`/`003.6`).
-- **Telemetry ingest tables**: `indicator_sample` (latest-only upsert per `(indicator, resource_orn)`),
+- **Telemetry ingest tables**: `indicator_sample` (latest-only upsert per `(indicator, resource_frn)`),
   `observed_consumer_group` (upsert). `policy_action` is append-only.
 - **Derived views** (`ChannelClientAccess` / `ClientChannelAccess`) are computed in Go, not stored.
 - **Optimistic concurrency** via `WHERE updated_at = $prev`; `kafka_topic.generation` is the separate
@@ -823,7 +823,7 @@ Full doc: `003-franz/003.12-persistence-and-data-model.md`.
 - **Migrations: Flyway** in `franz/migrations/`; single `V1__init.sql` edited in place until the schema
   is frozen.
 - **Still open:** query layer (`pgx`+`sqlc` vs hand-written vs ORM), `indicator_sample` history/retention,
-  Client-deletion ORN reservation, `realm` bootstrap, how much selector grammar pushes down to SQL,
+  Client-deletion FRN reservation, `realm` bootstrap, how much selector grammar pushes down to SQL,
   whether staged operations need their own state tables, `updated_at` vs a dedicated `row_version`.
   *(Most of these are resolved in ADR-API-005.)*
 
@@ -841,6 +841,10 @@ Decisions made while turning the specs into `franz/implementation_plan.md`. They
   every request until auth (`003.2`) carries the realm.
 - Config: **checked-in `config.yaml` + `FRANZ_`-prefixed env overrides via `koanf`** (supersedes the
   `DB_*` convention in `106-operations`).
+- Migrations (impl of deliverable 02, refines `003.12`): Flyway stays the authority, **and** Franz
+  embeds `migrations/*.sql` and applies them on boot when `db.auto_migrate` is set (default on). Every
+  statement in `V1__init.sql` is idempotent (`… IF NOT EXISTS`, `ON CONFLICT DO NOTHING`) so the two
+  paths cannot conflict; disable `db.auto_migrate` wherever Flyway owns schema changes.
 
 **Placement (`003.7`).**
 - Absent `franz.affinity/selector` ⇒ **no candidates**; the channel's shards stay `PENDING` /
@@ -913,3 +917,23 @@ Providers) and the first agent implementation. Feature 1 of `franz/docs/impls_pl
 - **Still open** (ADR §Open questions): multi-broker recipe, `READY` vs `DEGRADED` health probe, local
   port conflicts, a derived "agent connected" flag, non-bundled recipe distribution,
   `cluster_provider_event` retention.
+
+### ADR-API-007: resource identifier is the FRN, with a configurable prefix
+
+Supersedes the "ORN" naming in ADR-API-003 / ADR-API-005 and the `003.1` conventions.
+
+- The resource identifier is the **FRN** (Franz Resource Name), format
+  `frn:<realm>:<resource-type>:<name>`. "ORN" is retired as a term; all specs, proto comments, Go code
+  (`pkg/franz/core/domain/frn`), proto fields (`frn`, `client_frn`, `resource_frn`, `cluster_frn`), and
+  DB columns use `frn`.
+- **The prefix is configurable.** Control-plane config key `resource_prefix` (env
+  `FRANZ_RESOURCE_PREFIX`), default `frn`, must match `^[a-z][a-z0-9]*$` (2–16 chars). It is **read
+  once at bootstrap and immutable** for the life of the deployment.
+- **Persistence is prefix-less.** The `frn` column stores the bare
+  `<realm-slug>:<resource-type>:<name>` path; the prefix is applied only when rendering an API
+  response. Changing `resource_prefix` therefore never rewrites stored rows.
+- **Parsing is lenient.** The parser accepts the configured prefix and *always* accepts the literal
+  `frn:` and `orn:` prefixes as aliases, so identifiers copied from another deployment (or from the
+  pre-rename `orn:` era) still resolve.
+- Rationale: matches the AWS-ARN-style pattern teams already know, lets an operator brand identifiers
+  for their org, and keeps the stored identity independent of a presentation setting.

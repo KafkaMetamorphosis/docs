@@ -79,9 +79,9 @@ reads only the keys its recipe understands.
 ## 4. Status — `cluster_provider_event`
 
 `ReportClusterStatus` appends to a `cluster_provider_event` table
-(`cluster_orn`, `phase`, `reachable`, `message`, `reporting_agent`,
+(`cluster_frn`, `phase`, `reachable`, `message`, `reporting_agent`,
 `recipe_ref`, `occurred_at`). Pruned nightly (30 days, matching `003.14`).
-"Current provider status" = the latest row per `cluster_orn`, surfaced on
+"Current provider status" = the latest row per `cluster_frn`, surfaced on
 `GetKafkaCluster` and the console. `KafkaCluster.state` (operator intent) is
 never written by an agent.
 
@@ -100,7 +100,7 @@ recipe name + a hash of the rendered spec.
 - Selected keys from `cluster_configuration` become broker config
   (`default.replication.factor`, `num.partitions`, …); unknown keys are passed
   through where safe.
-- Container labels: `franz.managed-by=<agent>`, `franz.cluster=<orn>`,
+- Container labels: `franz.managed-by=<agent>`, `franz.cluster=<frn>`,
   `franz.recipe-hash=<sha>`.
 
 ## 6. Agent implementation
@@ -143,7 +143,7 @@ service ClusterProviderService {
 }
 ```
 
-`ClusterAssignment` carries the cluster `cluster_name` / `cluster_orn`, `change`
+`ClusterAssignment` carries the cluster `cluster_name` / `cluster_frn`, `change`
 enum (`CHANGE_SET` / `CHANGE_PAUSED` / `CHANGE_REMOVED`), `connection_strings`,
 `cluster_configuration`, and the `franz.provisioning/*` labels.
 
