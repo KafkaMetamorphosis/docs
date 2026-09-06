@@ -99,6 +99,12 @@ Codex session: 01a076cb-7154-7012-bb8f-3b2ecd16f814 (model: gpt-5.6-terra) — r
 
 ## Notes / deviations
 
+- **CI buf version** — `bufbuild/buf-setup-action` default installs an older
+  `buf` that rejects `edition = "2024"` (same failure as local `buf 1.47.2`).
+  Pinned `version: 1.72.0` in both CI jobs. Also pinned the remote
+  `protoc-gen-*` plugin versions in `buf.gen.yaml` for reproducible
+  `buf generate`. `buf breaking` is `continue-on-error` until `main` carries the
+  protos. (claude, post-PR CI fix — franz `342f44e`)
 - Deliverable 01 is handled specially: Claude + user settle repo/branch/module.
 - **Codex handoff → Claude.** Codex was blocked twice: (1) its `workspace-write`
   sandbox has no network *and* cannot write the Go module cache
