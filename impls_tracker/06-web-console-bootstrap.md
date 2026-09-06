@@ -70,6 +70,13 @@ From `franz/`:
 - `buf generate api` — ✅ emits `pkg/gen/go` + `api/openapi/franz.swagger.json`;
   `buf lint api` clean (no `.proto` change)
 
+## Follow-on
+
+- **`franz/Makefile`** (user ask, same PR): `make dev` runs Postgres + the
+  control plane + the console together, health-gated, Ctrl-C stops all. Plus
+  `run` / `console` / `gen` / `test` / `e2e` / `lint` / `clean`. Verified: both
+  `:8080/healthz` and `:5173` come up and the SIGINT trap leaves no orphans.
+
 ## Notes / deviations
 
 - Codex out of quota → Claude implemented the whole deliverable.
