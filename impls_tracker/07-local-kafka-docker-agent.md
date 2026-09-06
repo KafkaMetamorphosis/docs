@@ -24,8 +24,16 @@ All three were **asked**:
   self-skips without `FRANZ_AGENT_E2E=1`; **not** in CI.
 
 ### Q3 — local dev
-- **Answer:** **`make agent TOKEN=…`** — a standalone target run after
-  registering an agent in the console. `make dev` is unchanged.
+- **Answer:** **`make agent`** — a standalone target. `make dev` is unchanged.
+- **Follow-up (2026-09-06, asked by user):** "make agent should seed/reuse a local
+  agent registration itself." Implemented: with no `TOKEN=`, the target sets
+  `FRANZ_REGISTER=1` and the agent self-registers on startup via
+  `pkg/localkafka/register.go` — `GetAgent(name)` → `CreateAgent` (NotFound) or
+  `RotateAgentToken` (exists), erroring if the name is a deleted agent. Uses the
+  returned token for the authed gRPC connection. `TOKEN=`/`AGENT_NAME=` still
+  override. Local-dev only — Franz's `AgentService` is unauthenticated there.
+  Covered by `TestEnsureRegistered*` (bufconn stub) and the real-Docker
+  `agent-e2e`, which now exercises the self-register path.
 
 ### Implementation choices (not asked)
 
@@ -76,5 +84,9 @@ From `franz/`:
 - No CI change — the fake-driver tests run in the existing `go` job; the
   real-Docker e2e is local-only by decision.
 - `Makefile` gains `agent` and `agent-e2e`; `webconsole/README` documents the
-  "register agent → `make agent TOKEN=…` → register cluster" path to a live
-  broker.
+  "`make agent` (self-registers) → register cluster" path to a live broker.
+- **2026-09-06 follow-up commit** (`impl/07` branch, PR #12): self-register for
+  `make agent` (`FRANZ_REGISTER=1`, `pkg/localkafka/register.go`), Makefile
+  `agent` target no longer requires `TOKEN=`, `agent-e2e` now goes through the
+  self-register path. `go build/vet/test ./pkg/localkafka/...` clean;
+  `make agent-e2e` green.
