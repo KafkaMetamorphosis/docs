@@ -80,11 +80,13 @@ be an apache/kafka-compatible image — the recipe renders the KRaft env for tha
 image, not an arbitrary Kafka distribution.
 
 The prefix is open — more keys are added without a breaking change. The agent
-reads only the keys its recipe understands, and **self-declares that set** as its
-`Agent.provisioning_labels` schema (`003.9`) when it registers, so the console
-can pre-fill and constrain the fields on a cluster form: `deployment-type`
-(`["local-docker"]`, default `local-docker`, required), `kafka-version` (default
-`3.7.0`), `kafka-image` (free text).
+reads only the keys its recipe understands. That set is published as the agent's
+`Agent.provisioning_labels` schema (`003.9`) so the console can pre-fill and
+constrain the fields on a cluster form: `deployment-type` (`["local-docker"]`,
+default `local-docker`, required), `kafka-version` (default `3.7.0`),
+`kafka-image` (free text). For local dev the schema (and the agent registration
+itself) is installed by the DB seed — `franz/local/seed/01-local-agent.sql`,
+applied by `make deps`.
 
 ## 4. Status — `cluster_provider_event`
 

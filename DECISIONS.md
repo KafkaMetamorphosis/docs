@@ -954,8 +954,9 @@ Extends ADR-006 / `003.9`. Driven by impls_plan deliverable 08 (console resource
 - **Purpose** — the console renders one form field per spec when an operator targets an agent
   (dropdown if `allowed_values`, else text; pre-filled from `default_value`; `required` flagged),
   writing the values into the target resource's `labels`.
-- **Populated by** the agent at registration (the local-kafka-docker-agent self-declares
-  `deployment-type` / `kafka-version` / `kafka-image`) or an operator in the console.
+- **Populated by** an operator in the console, or when the agent is registered. The
+  local-kafka-docker-agent's schema (`deployment-type` / `kafka-version` / `kafka-image`) is
+  installed by its local-dev DB seed (`franz/local/seed/`).
 - **`franz.provisioning/kafka-image`** — new `local-docker` label: a full apache/kafka-compatible
   image ref (tag / digest / mirror), precedence over `kafka-version`, feeds the recipe hash.
 - Rationale: makes provisioning intent discoverable and less error-prone without coupling Franz to
