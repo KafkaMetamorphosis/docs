@@ -348,7 +348,7 @@ how a cluster is deployed (`LocalDocker`, `MSK`, `Strimzi`) and holds the config
 needs to provision and maintain that cluster.
 
 **Franz's role is unchanged.** Franz stores provider configuration and never uses it — agents read it and
-perform every real-world infrastructure action. This preserves the invariant stated in `003.1-kafka-cluster.md`
+perform every real-world infrastructure action. This preserves the invariant stated in `003.3-kafka-cluster.md`
 ("Franz does not manage/interact with the clusters like brokers and infrastructure resource") and the
 unidirectional, declarative property in the architecture overview. Registering a provider does not create,
 contact, or validate infrastructure.
@@ -477,8 +477,8 @@ Governance becomes a top-level navigation item (peer of Home and Async Channels)
 - **Indicator** — a value published by a Telemetry Agent (`replica-size`, `avg-replica-per-broker`, …).
 - **Matcher** — an entity (Kafka Topic, Kafka Cluster, Async Channel) and a label selector (`=`, `IN (…)`).
 - **Limit** — a comparator (`< <= = != >= >`) against a value.
-- **Actions** — `add_label`, `set_status`, `update_field`, `increase_field_by`, `decrease_field_by`, run
-  against every matched resource when the limit is crossed.
+- **Actions** — `add_label`, `remove_label`, `set_status`, `update_field`, `increase_field_by`,
+  `decrease_field_by`, run against every matched resource when the limit is crossed.
 - **Weight** — breaks ties when several policies act on the same resource.
 
 Actions change Franz's **declared** state only; the normal reconciliation path realises the change, so Franz
@@ -524,8 +524,11 @@ every permission comes from the channel it connects to. Navigation: "Async Chann
 `client-detail.html`; scopes `client:*`.
 
 **Access policy.** Each channel has **one policy document** (S3-bucket-policy style): a list of statements,
-each with a **principal** (client ORN, label selector, or both) granting `Read` / `Write`. **Zero trust** —
-no matching statement means no access. Authored on the channel (create form has a statement builder; detail
+each with an **effect** (`Allow` / `Deny`, `EFFECT_UNSPECIFIED` rejected), a **principal** (client ORN,
+label selector, or both — `*` wildcard allowed in both the ORN and label values), and one or more
+`permissions` (`Read` / `Write`). Evaluation for `(client, action)`: explicit `Deny` wins → explicit
+`Allow` → otherwise no access (**zero trust**). So a broad `Allow` (`client:xpto-*`) can coexist with a
+narrow `Deny` (`client:xpto-blah`). Authored on the channel (create form has a statement builder; detail
 page shows statements + rendered document + a derived "Clients with access" table). Edited via
 `async-channel:update`, never on the client. The client-detail page shows the reverse view — every channel
 whose policy matches this client.
@@ -542,47 +545,272 @@ The new screens reuse existing table, `label-builder`, and `code-box` patterns. 
 — the channel access-policy statement builder puts the principal on its own wide textarea row rather than
 cramming a label selector into a narrow flex cell.
 
-## API Contract (`api/proto/franz/v1`)
+## API Contract (`franz/api/franz/v1`)
 
 ### ADR-API-001: protobuf/gRPC is the authoritative Franz contract
 
-The Franz wire contract is protobuf (**edition 2024**) under `api/proto/franz/v1/`, generated with
+The Franz wire contract is protobuf (**edition 2024**) under `franz/api/franz/v1/`, generated with
 **buf** to `pkg/gen/go/` (committed). One API surface for the console and the agents; a
 **grpc-gateway** REST/JSON mapping is declared inline via `google.api.http` on console-facing RPCs.
 Edition 2024's default `field_presence = EXPLICIT` is kept (every scalar is presence-tracked), which
 suits FieldMask-based partial updates and distinguishing "unset" from a zero value. The
 `docs/003-franz/` specs describe intent and semantics; the `.proto` files are authoritative for
-message and service shapes. Agent-facing services (`FleetService`, `TelemetryService`) are gRPC-only.
+message and service shapes.
 
-Files: `common`, `kafka` (`KafkaCluster` + `KafkaTopic` + `TopicRevision`, consumption, traffic share, both
-services), `topic_configuration`, `async_channel` (+ access policy), `fleet` (Resource Provider pull/report),
-`agent` (registry), `client`, `governance` (`Policy` + `Indicator`), `telemetry`.
+Files: `common`, `kafka` (`KafkaCluster` + `KafkaTopic`, consumption, traffic share, both services),
+`async_channel` (+ access policy), `agent` (registry only), `client`, `governance` (`Policy` + `Indicator`),
+`telemetry`. **The agent ↔ Franz interaction model (how agents receive work and report results) is deferred
+to a separate ADR — there is no `fleet.proto`.**
 
-Conventions: **every RPC has its own `{Method}Request` and `{Method}Response`** — no shared or bare-resource
-returns, no `google.protobuf.Empty` (Delete returns an empty `{Method}Response`). Get/Create/Update responses
-wrap the resource in a single field. `PageRequest`/`PageResponse` from `common.proto`; label selectors and
-ORNs are strings; custom verbs use `:verb` (`:pause`, `:setConsumption`, `:dryRun`). buf lint `STANDARD`
-with **no exceptions**.
+Conventions (full detail in `003-franz/003.1-conventions.md`): **every RPC has its own `{Method}Request` and
+`{Method}Response`** — no shared or bare-resource returns, no `google.protobuf.Empty` (Delete returns an
+empty `{Method}Response`). Get/Create/Update responses wrap the resource in a single field.
+`PageRequest`/`PageResponse` from `common.proto`; label selectors and ORNs are strings; custom verbs use
+`:verb` (`:pause`, `:setConsumption`, `:dryRun`). buf lint `STANDARD` with **no exceptions**. ORN is
+`orn:<realm>:<type>:<name>` (realm = the tenant/authz boundary). Every timestamp field uses the `_at` suffix.
 
-**Server-assigned fields** (`orn`, `id`, `create_time`, `update_time`, and derived `state`/`status`/
-`traffic_share`/`last_*`) are marked `[(google.api.field_behavior) = OUTPUT_ONLY]` — the client provides only
-`name` (or `name` + labels) at registration; Franz mints the ORN.
+**Explicit requests, no `field_behavior`.** Every `Create*` / `Update*` / `DryRun*` request lists only the
+client-settable fields — it never embeds the resource message. Server-assigned fields (`orn`,
+`created_at`, `updated_at`, derived `state`/`status`/`traffic_share`/`generation`) exist only on the
+resource message, which appears only in responses. `google.api.field_behavior` / `OUTPUT_ONLY` was dropped
+entirely: it's a doc-only annotation that only earned its keep under resource-embedded requests, which we no
+longer use. `Update*` requests keep a `google.protobuf.FieldMask update_mask` for partial updates. Gateway
+`body: "*"` and `{name}` path params throughout.
 
 **Kafka Cluster shape:** broker addresses live in `repeated ConnectionString connection_strings`
 (`bootstrap_urls` + `ConnectionType`, today only `PLAINTEXT`) so authenticated connection types can be added
 without a breaking change. The cluster's default Kafka settings are an inline `map<string,string>
 cluster_configuration` (no `TopicConfiguration` reference). The Cluster Provider link is
-`cluster_provider_agent_orn`.
+`cluster_provider_agent`.
 
 **REST namespacing** (grpc-gateway paths) mirrors the console navigation groups:
-`/v1/kafka/{clusters,topics,topic-configurations,agents}`, `/v1/governance/{policies,indicators}`,
+`/v1/kafka/{clusters,topics,agents}`, `/v1/governance/{policies,indicators}`,
 `/v1/async-channels/…`, `/v1/clients/…`. Agents sit under `/v1/kafka/` because the console groups them there
 while Kafka is the only capability; a capability-neutral `/v1/fleet/agents` is the likely future move. gRPC
 service/method names are unchanged — this is gateway routing only.
 
-### ADR-API-002: entity renames and expansion removed
+### ADR-API-002: entity renames, expansion / TopicRevision / TopicConfiguration removed
 
-`Topic Definition` → **`AsyncChannel`**, `Topic Claim` → **`KafkaTopic`**. `TopicRevision` and
-`TopicConfiguration` keep their names. The expansion engine (`003.6`) is superseded — placement is a
-step of `AsyncChannel` create/update. `docs/003-franz/` files carry alignment banners; deeper rewrites
-of `003.2` / `003.5` / `003.7` are pending.
+`Topic Definition` → **`AsyncChannel`**, `Topic Claim` → **`KafkaTopic`**. The expansion engine is
+superseded (see `003-franz/README.md`) — placement is a step of `AsyncChannel` create/update.
+
+**`TopicConfiguration` is removed for now.** No named, reusable, CRUD-managed config entity. Kafka topic
+settings are plain `map<string, string>` merged by Franz across two layers:
+`KafkaCluster.cluster_configuration` → `KafkaTopic.topic_configuration`. `AsyncChannel` carries **no** Kafka
+config — it's the transport-agnostic boundary, and `001-ux` puts Kafka-specific settings on the generated
+topics. The merged map is what an agent applies when it reconciles the topic (delivery mechanism TBD in the
+interaction ADR). No `/v1/kafka/topic-configurations` routes.
+
+**Field trims.** `AsyncChannel` dropped `context_selector` (a dedicated placement-selector string);
+placement inputs live in `labels` (`franz.affinity/*`), per `003.7`. `Agent` dropped `context_selector`
+and `fleet_api_endpoint` — it is now `name` + `type` + `labels` + status/timestamps. `labels` is metadata
+and an extension point. The demo's `register-agent` form still shows the removed fields (`UXD-007`); it will
+be reconciled later.
+
+**Agent interaction model removed / deferred.** An earlier `fleet.proto` defined a pull-based
+`FleetService` (`PollWork` / `ReportWork` / `WorkItem` / outcomes). It is **deleted** — the way agents
+receive work, report results, recover from errors, and are scoped is a distinct architecture question for a
+separate ADR, not something to fix in the proto yet.
+
+**`TopicRevision` is removed for now.** Rationale: the per-attempt revision entity (state machine +
+retry chain + stale-revision guard) added a lot of surface for a first cut. Instead, `KafkaTopic` carries
+its desired state directly plus an `int64 generation` (a bare optimistic-concurrency token — its exact use
+belongs to the interaction ADR). `traffic_share` is a `TrafficShare` message (`value` + `unit`).
+
+**Trade-offs accepted:** no per-attempt failure history or error/retry-chain audit, and no
+`ListTopicRevisions` endpoint. No explicit topic-retry RPC. Migration/delete flows in `003.11` that were
+revision-based need a rework when revisited.
+
+Superseded by ADR-API-003 — the full `003-franz/` rewrite is complete.
+
+### ADR-API-003: 003-franz doc restructure + resolved entity semantics
+
+**Doc strategy.** `.proto` files under `franz/api/franz/v1/` are authoritative for **shapes and RPCs**; the
+`003.x` markdown is authoritative for **semantics, invariants, state transitions, and cross-entity
+behaviour**. Markdown keeps only a short "key fields" summary + a link to the proto — no full field tables.
+`003-franz/` was renumbered once to a 0–11 layout (`003.6-expansion-engine.md` deleted; several files
+renamed). This entry accumulates the design decisions settled during the rewrite.
+
+**Readiness.** `Status: ready` — `003-franz/README` (index), `003.1`, `003.3`, `003.5`, `003.6`,
+`003.9`, `003.10` (model settled; open questions are tracked deferrals, several belonging to future
+ADRs). Still `Status: draft` — `003.4` (shard routing key/hash unspecified), `003.7`
+(no-eligible-cluster + re-placement unresolved), `003.8` (the `(entity, field)` write whitelist
+undefined), `003.11` (migration data-movement and a control-plane event log each need their own ADR),
+`003.12` (persistence — query layer undecided). `003.2` is a deliberate placeholder
+(`Status: open — not yet decided`).
+
+**Kafka Cluster (`003.3`).**
+- Cluster has a persisted `state`: `ACTIVE` / `PAUSED` / `DELETED` only (no degraded/draining/health yet).
+  `PauseKafkaCluster` / `ResumeKafkaCluster` toggle `ACTIVE ↔ PAUSED`; `PAUSED` removes the cluster from
+  **new** placement without touching existing topics. `DeleteKafkaCluster` is a terminal soft delete.
+  Proto: added `KafkaClusterState` enum + `state` field + `Pause`/`Resume` RPCs to `kafka.proto`.
+- `cluster_provider_agent` is an **unvalidated** free string — Franz does not check the agent exists or is
+  a Cluster Provider.
+- Editing `cluster_configuration` applies to **new topics only**; already-created topics keep their
+  materialized config and are not re-reconciled.
+- **Still open (own ADR):** deleting a cluster that still hosts live topics — today a hard
+  `FAILED_PRECONDITION`; whether to add a `force`/drain path is deferred.
+
+**Async Channel (`003.4`).**
+- Abstract resource — carries **no** Kafka configuration.
+- `ChannelState` trimmed to `ACTIVE` / `PAUSED` / `DELETED` (no `PENDING`/`ERROR` — reconciliation
+  progress and failures live on the individual Kafka Topics). Pause stops reconciling the channel's
+  shards; delete is a terminal soft delete. Proto: `ChannelState` enum reduced in `async_channel.proto`.
+- `channel_partitions` = **shard count**. Franz splits the channel into that many Kafka Topics named
+  **`<async-channel-name>-<index>`** (`0..n-1`); the cluster name is **not** in the topic name, so a
+  shard keeps its name across re-placement. Shards may sit on different clusters.
+- Changing `channel_partitions` (up *or* down) is a **staged re-shard operation** with drain steps to
+  avoid data loss — not an `UpdateAsyncChannel` field. Concrete RPC/steps → `003.11`.
+- `access_policy` is mutated only via `SetAccessPolicy`, never an `UpdateAsyncChannel` mask.
+- **Still open:** re-shard RPC + step sequencing, shard routing key/hash, re-placement on label change.
+
+**Kafka Topic (`003.6`).**
+- Franz owns the entity end to end — no `Create` / `Update` / `Delete` RPC, and **no manual retry RPC**
+  (`ERROR` shards are re-offered automatically). `SetConsumption` is the only client-facing mutation.
+- `KafkaTopicState` keeps `PENDING` / `READY` / `PAUSED` / `ERROR` / `DELETED` — this is where
+  reconciliation progress/failure lives (the channel no longer has `PENDING`/`ERROR`). Channel pause/delete
+  propagate to the shards.
+- `consumption` is **orthogonal** to `state`. `CONSUMPTION_DISABLED` drains the shard: producers re-route
+  its key range to the channel's other shards, `traffic_share` → 0, topic + data retained. This is the
+  mechanism the re-shard flow uses to retire a shard.
+- Config merge is two layers, `cluster_configuration ← topic_configuration`, **materialised at
+  create/change time**; not re-applied when `cluster_configuration` later changes.
+- Partition count and replication factor are **dedicated `KafkaTopic` fields** (`partitions`,
+  `replication_factor`) — *not* config-map keys. Franz seeds them from cluster defaults;
+  `partitions` may only increase.
+- `traffic_share` is an **intended** producer-routing split, **not** a telemetry measurement. Franz keeps
+  an equal split across `ENABLED` shards and rebalances on drain/restore/re-shard. Proto `traffic_share`
+  comment reworded.
+- No persisted `error` string on the topic; failure reason is surfaced through operational signal
+  (`003.11`).
+- **Still open:** exact cluster-default keys that seed `partitions`/`replication_factor`, the
+  operator/governance override path for `traffic_share`, automatic-retry cadence, `generation` echo rules.
+
+**Access Policy (`003.5`).**
+- One `AccessPolicy` per channel, embedded in `AsyncChannel`, replaced wholesale by `SetAccessPolicy` —
+  no per-statement add/remove RPC. Data-plane only (SDK read/write); distinct from `003.2` API authz.
+- A `Principal` matches on `client_orn` **OR** a label selector (at least one set) — `*` glob per `003.1`.
+- Evaluation for `(client, action)`: matched **DENY** wins → matched **ALLOW** → deny (zero trust).
+  Order-independent. READ and WRITE evaluated separately. `EFFECT_UNSPECIFIED` rejected at write.
+- A statement whose `client_orn` resolves to no Client is **valid** (matches nothing) — supports
+  pre-provisioning and survives client deletion (ORNs are not reclaimed).
+- `Client` holds **no** permission of its own. Governance never writes access policies.
+- **Still open:** SDK enforcement point + live-connection behaviour on policy change, statement cap value,
+  `ListChannelClients` evaluation cost, `matched_by` semantics on multi-match.
+
+**API Authorization (`003.2`) — deferred.** The authorization model for console / API callers is **not
+decided**; `003.2` is a placeholder framing the problem and listing options (permission unit, verb
+granularity, resource-scoped grants, telemetry/agent boundary, cross-realm access, representation).
+Only the invariants stand: authenticated + realm-scoped caller, checked centrally before the handler,
+`PERMISSION_DENIED` / `UNAUTHENTICATED`. **Authentication** is a further separate ADR, also unwritten.
+Note: the *data-plane* access policy (`003.5`) is decided and unaffected.
+
+**Placement & Selection (`003.7`).**
+- Placement is **label-only** — no cluster field on `AsyncChannel`. Channel declares intent via
+  `franz.affinity/selector` (003.1 grammar), `franz.antiaffinity/selector` (negation),
+  `franz.affinity/shard-size` (how many distinct clusters to spread shards across, default 1),
+  `franz.taint/toleration`. Cluster describes itself via `franz.taint` (`no-creation` / `drain`) and
+  `franz.affinity/weight` (default 1).
+- Deterministic 5-step algorithm: ACTIVE clusters matching affinity → minus anti-affinity → minus
+  untolerated taints → order by weight desc then `name` asc → round-robin the `channel_partitions`
+  shards across the top `min(shard-size, |candidates|)` clusters.
+- `no-creation` blocks new shards (tolerable); `drain` blocks new **and** marks existing shards for
+  migration (untolerable). Migration flow → `003.11`.
+- **Still open:** absent-selector semantics (this doc assumes "no candidates"), no-eligible-cluster
+  behaviour, re-placement on label change (only `drain` forces a move today), `shard-size` ↔
+  `channel_partitions` interplay, a dry-run `PreviewPlacement` RPC, multi-toleration encoding.
+
+**Governance (`003.8`).**
+- **Reactive only — no admission control.** A Policy never rejects or delays a `Create`/`Update`; it
+  watches an Indicator and mutates *declared* state after the fact, which then reconciles. The old
+  `reject-topic-creation` / `reject-*` actions are removed.
+- `Policy` = `indicator` + `Matcher` (entity + 003.1 selector) + `Limit` (one `operator` + string
+  `value` in the indicator's unit) + ordered `actions` + `weight` (higher wins ties) + `enabled`. A
+  lower+upper band is **two policies**.
+- 6 `ActionKind`s: `ADD_LABEL` / `REMOVE_LABEL` / `SET_STATUS` / `UPDATE_FIELD` / `INCREASE_FIELD_BY` /
+  `DECREASE_FIELD_BY`; `amount` may be a percentage.
+- Actions change **declared state only** — never call agents, never edit access policies (`003.5`).
+- Disabled policies and stale indicators (past `staleness_threshold`) never fire. Every automated
+  change is a `PolicyAction` audit record. `DryRunPolicy` takes an inline definition and neither
+  mutates nor audits.
+- `Indicator` is read-only over `GovernanceService`; samples arrive via `telemetry.proto` from
+  Telemetry Agents.
+- **Still open:** the `(entity, field)` write whitelist for `*_FIELD` actions and per-entity
+  `SET_STATUS` values; equal-weight conflict resolution; anti-thrash / hysteresis; evaluation cadence;
+  saved-policy dry-run + `simulated_effect`; unknown-indicator handling; range limits; how `Indicator`
+  records are provisioned (no `CreateIndicator` today).
+
+**Agents (`003.9`).**
+- The doc is the **registry + lifecycle only**. `Agent` = `name` (immutable key) + `type` + `labels` +
+  server-managed `status` / `last_contact_at`.
+- The 4 `AgentType`s are an **organisational filter only** — no effect on how the agent connects, what
+  it may do, or how Franz treats it.
+- Franz **never calls an agent**; agents connect in. Registration is inert (no connection, no work).
+- `AgentStatus` is a **lifecycle** machine — `ACTIVE` / `PAUSED` / `DELETED` only, mirroring Kafka
+  Cluster (`003.3`): `PauseAgent` / `ResumeAgent` toggle `ACTIVE ↔ PAUSED`, `DeleteAgent` is a terminal
+  soft delete. **Agent liveness/health is not modelled** — `last_contact_at` and any connected/stale
+  signal are dropped for now, to be added later if needed. Proto: `AgentStatus` enum rewritten,
+  `last_contact_at` removed, `Pause`/`Resume` RPCs added.
+- The `cluster_provider_agent` link stays an unvalidated string (`003.3`) — dangling references
+  tolerated.
+- **Deferred to their own ADRs:** the agent ↔ Franz interaction model, agent liveness/health,
+  telemetry ingest semantics, agent authentication.
+- **Still open:** endpoint namespace (`/v1/kafka/agents` vs `/v1/agents`), whether `type` is mutable,
+  delete-while-referenced behaviour, exact `PAUSED` semantics, `labels`-as-work-scoping.
+
+**Clients (`003.10`).**
+- A `Client` is a **realm-wide, flat-namespace** SDK identity. **No** type / role / state field, and
+  **no permission of its own** — the channel access policy (`003.5`) is the sole authority for
+  Read/Write. Labels *should* carry `org.com/owner`.
+- **Consumer groups are not registered.** Default name `<client-name>.<topic-name>`; custom names
+  allowed. Franz learns of groups only from Telemetry Agents as `ObservedConsumerGroup` (observation,
+  not declaration).
+- `ListClientChannelAccess` and `ListObservedConsumerGroups` are **read-only projections** computed on
+  read.
+- `DeleteClient` does not free the `name` / ORN; ORN-matched policy statements go dormant.
+- **Deferred:** client credentials (issuance / rotation / proof), connection testing.
+- **Still open:** owner-label enforcement, custom-group→client attribution, deletion cascade + name
+  reuse, `ObservedConsumerGroup` retention, realm-wide vs future sub-scope.
+
+**Lifecycle & Operations (`003.11`).** Coordinating doc — per-entity state machines stay in their own
+`003.x` files.
+- **Pause** (cluster / channel / agent) is always reversible and never removes real-world resources:
+  cluster = out of new placement, channel = its shards go `PAUSED`, agent = no work handed to it.
+- **Soft delete** (cluster / channel / topic / agent) → terminal `DELETED`, retained for audit,
+  `name` / ORN **never freed**, `FAILED_PRECONDITION` afterwards. Channel delete cascades to its shards.
+  `Client` currently has no `DELETED` state — reconciling that is open.
+- **Cluster delete with live topics** and **shard migration** (drain taint / re-placement) share one
+  unsolved problem: there is no data-movement RPC, mechanism, or safety guarantee — its **own ADR**.
+  The old `cluster-migration` endpoint and `TopicRevision` are gone; error recovery is continuous
+  reconciliation, not revisions.
+- **`SetConsumption(DISABLED)`** is the shared drain primitive for re-shard and migration.
+- **History**: only `PolicyAction` (`003.8`) is persisted. There is **no general control-plane event
+  log** (state transitions, reconciliation outcomes, operator actions) — designing one is open, and
+  reconciliation failure reasons (`003.6`) have nowhere durable to live yet.
+
+### ADR-API-004: persistence and data model
+
+Full doc: `003-franz/003.12-persistence-and-data-model.md`.
+
+- **PostgreSQL only.** Reached solely through `franz/pkg/franz/adapters/out/postgres/`, implementing
+  `core/ports/out`; `core/domain` and `core/usecases` hold no SQL.
+- **Table per entity**, surrogate `id uuid` PK; domain identity is a `UNIQUE (realm_id, name)`
+  constraint plus a `UNIQUE` `orn` column. `name` is never reused (constraint is unconditional).
+- **`realm_id` on every table**; every query is realm-scoped.
+- **Enums = `text` + `CHECK`** (not PG `enum`); the proto enum is the source of truth.
+- **`jsonb` for maps and documents** — `labels`, `cluster_configuration`, `topic_configuration`
+  (GIN-indexed for selectors), `connection_strings`, `access_policy` (whole document), `actions`.
+- **Soft delete** = `state = 'DELETED'` row retained; repos hide it by default, `Get` still returns it.
+- **`kafka_topic` stores both** `topic_configuration` (override) and `materialized_configuration` (the
+  frozen `cluster_configuration ⊕ topic_configuration` the agent reconciles against — matches the
+  "`cluster_configuration` edits hit new topics only" rule from `003.3`/`003.6`).
+- **Telemetry ingest tables**: `indicator_sample` (latest-only upsert per `(indicator, resource_orn)`),
+  `observed_consumer_group` (upsert). `policy_action` is append-only.
+- **Derived views** (`ChannelClientAccess` / `ClientChannelAccess`) are computed in Go, not stored.
+- **Optimistic concurrency** via `WHERE updated_at = $prev`; `kafka_topic.generation` is the separate
+  domain token. Compound operations (channel + shards + placement) are one transaction.
+- **Migrations: Flyway** in `franz/migrations/`; single `V1__init.sql` edited in place until the schema
+  is frozen.
+- **Still open:** query layer (`pgx`+`sqlc` vs hand-written vs ORM), `indicator_sample` history/retention,
+  Client-deletion ORN reservation, `realm` bootstrap, how much selector grammar pushes down to SQL,
+  whether staged operations need their own state tables, `updated_at` vs a dedicated `row_version`.

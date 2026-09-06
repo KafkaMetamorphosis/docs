@@ -16,28 +16,29 @@ Gregor Samsa runs as a sidecar or agent scoped to a single Kafka cluster. It rea
 
 ## Documents
 
-| Document | Description |
-|---|---|
-| [IMPLEMENTATION.md](./IMPLEMENTATION.md) | Implementation status — what is built, when, and what is still missing. |
-
 ### Specs
 
 | Document | Description |
 |---|---|
 | [001-architecture-overview.md](./001-architecture-overview.md) | High-level system architecture, full domain model, and all state machines. |
-| [002-clojure-projects-structure.md](./002-clojure-projects-structure.md) | Clojure project layout and namespace conventions. |
-| [003-franz/003.0-franz.md](./003-franz/003.0-franz.md) | Franz overview and dependencies. |
-| [003-franz/003.1-kafka-cluster.md](./003-franz/003.1-kafka-cluster.md) | Cluster registration — CRUD API. |
-| [003-franz/003.2-async-channel.md](./003-franz/003.2-async-channel.md) | TopicConfiguration and TopicDefinition — schemas, state machine, API. |
-| [003-franz/003.3-kafka-topic.md](./003-franz/003.3-kafka-topic.md) | TopicClaim and TopicRevision — state machines, reconciliation API, retry, outcome mapping. |
-| [003-franz/003.4-topic-cluster-selection.md](./003-franz/003.4-topic-cluster-selection.md) | Topic Definition Expansion — taint/toleration, affinity, shard-size, scheduling pipeline. |
-| [003-franz/003.5-governance.md](./003-franz/003.5-governance.md) | Governance rules — EDN config controlling topic and cluster create/update behaviour. |
-| [003-franz/003.6-expansion-engine.md](./003-franz/003.6-expansion-engine.md) | Topic Definition Expansion engine — scheduling pipeline, taint/toleration, affinity, shard-size, config materialisation. |
-| [003-franz/003.7-topic-management.md](./003-franz/003.7-topic-management.md) | Claim management endpoints — update-config, cluster migration (spec, not yet implemented). |
-| [004-gregor-samsa/004-reconciliation.md](./004-gregor-samsa/004-reconciliation.md) | Gregor Samsa reconciliation loop — full service spec, poll/inform contract, retry, error handling. |
+| [002-monorepo-structure/002.0-monorepo-structure.md](./002-monorepo-structure/002.0-monorepo-structure.md) | Go monorepo layout — proto, hexagonal Franz, buf, grpc-gateway. |
+| [003-franz/README.md](./003-franz/README.md) | Franz overview, entity index, proto contract. |
+| [003-franz/003.1-conventions.md](./003-franz/003.1-conventions.md) | ORN, pagination, selector & label grammar, error conventions. |
+| [003-franz/003.2-api-authorization.md](./003-franz/003.2-api-authorization.md) | Console/API authorization — placeholder, model not yet decided. |
+| [003-franz/003.3-kafka-cluster.md](./003-franz/003.3-kafka-cluster.md) | Kafka Cluster — registration, config, provider link. |
+| [003-franz/003.4-async-channel.md](./003-franz/003.4-async-channel.md) | Async Channel — the customer-facing boundary; state machine. |
+| [003-franz/003.5-access-policy.md](./003-franz/003.5-access-policy.md) | Channel access policy — Allow/Deny evaluation for clients. |
+| [003-franz/003.6-kafka-topic.md](./003-franz/003.6-kafka-topic.md) | Kafka Topic — state machine, generation, consumption, config merge. |
+| [003-franz/003.7-placement-and-selection.md](./003-franz/003.7-placement-and-selection.md) | Placement — affinity, taints/tolerations, shard-size. |
+| [003-franz/003.8-governance.md](./003-franz/003.8-governance.md) | Governance — policies, indicators, actions, evaluation. |
+| [003-franz/003.9-agents.md](./003-franz/003.9-agents.md) | Agent registry; interaction model deferred to a separate ADR. |
+| [003-franz/003.10-clients.md](./003-franz/003.10-clients.md) | Client identity and consumer-group observation. |
+| [003-franz/003.11-lifecycle-and-operations.md](./003-franz/003.11-lifecycle-and-operations.md) | Pause/resume, soft delete, migration, signal history. |
+| [003-franz/003.12-persistence-and-data-model.md](./003-franz/003.12-persistence-and-data-model.md) | PostgreSQL schema — table-per-entity, jsonb for maps/documents, materialized topic config, migrations. |
+| [004-kafka-topic-reconciliation/004-reconciliation.md](./004-kafka-topic-reconciliation/004-reconciliation.md) | Gregor Samsa reconciliation loop — full service spec, poll/inform contract, retry, error handling. |
 
 ### Operations
 
 | Document | Description |
 |---|---|
-| [005-operations/005.0-overview.md](./005-operations/005.0-overview.md) | Deployment, configuration, observability, and operational procedures. |
+| [006-operations/006.0-overview.md](./006-operations/006.0-overview.md) | Deployment, configuration, observability, and operational procedures. |

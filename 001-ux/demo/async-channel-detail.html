@@ -49,27 +49,30 @@
           <div class="panel-body"><span class="tag">org.com/env=prod</span><span class="tag">org.com/country=br</span><span class="tag">org.com/shard=s8</span><p class="field-note">Readable context: <strong>br-prod-s8</strong>. Franz uses this selector to find eligible cluster locations.</p></div>
         </section>
         <section class="panel" id="access-policy" aria-labelledby="access-policy-title">
-          <div class="panel-header"><div><h2 id="access-policy-title">Access policy</h2><p class="panel-note">One policy document per channel, in the style of an S3 bucket policy. Zero trust: a client gets no access unless a statement matches its ORN or its labels.</p></div><a class="button" href="#access-policy">Edit policy</a></div>
-          <div class="table-wrap"><table><thead><tr><th>Principal</th><th>Grants</th></tr></thead><tbody>
-            <tr><td>ORN <code>orn:acme-platform:client:billing-ingestor</code></td><td><span class="tag">Write</span></td></tr>
-            <tr><td>Labels <span class="tag">org.com/team=settlement</span></td><td><span class="tag">Read</span></td></tr>
-            <tr><td>Labels <span class="tag">org.com/owner=data-platform</span></td><td><span class="tag">Read</span></td></tr>
+          <div class="panel-header"><div><h2 id="access-policy-title">Access policy</h2><p class="panel-note">One policy document per channel, in the style of an S3 bucket policy. Each statement Allows or Denies; an explicit Deny always wins, then an explicit Allow, otherwise no access (zero trust).</p></div><a class="button" href="#access-policy">Edit policy</a></div>
+          <div class="table-wrap"><table><thead><tr><th>Effect</th><th>Principal</th><th>Permissions</th></tr></thead><tbody>
+            <tr><td><span class="status">Allow</span></td><td>ORN <code>orn:acme-platform:client:billing-*</code></td><td><span class="tag">Write</span></td></tr>
+            <tr><td><span class="status">Allow</span></td><td>Labels <span class="tag">org.com/team=settlement</span></td><td><span class="tag">Read</span></td></tr>
+            <tr><td><span class="status">Allow</span></td><td>Labels <span class="tag">org.com/owner=data-platform</span></td><td><span class="tag">Read</span></td></tr>
+            <tr><td><span class="status paused">Deny</span></td><td>ORN <code>orn:acme-platform:client:billing-sandbox</code></td><td><span class="tag">Read</span><span class="tag">Write</span></td></tr>
           </tbody></table></div>
           <div class="panel-body">
             <div class="code-box">{:channel "orn:acme-platform:async-channel:billing-events"
  :statements
- [{:principal {:orn "orn:acme-platform:client:billing-ingestor"} :allow [:write]}
-  {:principal {:labels "org.com/team=settlement"}                :allow [:read]}
-  {:principal {:labels "org.com/owner=data-platform"}            :allow [:read]}]}</div>
-            <p class="field-note">A statement may match by ORN, by labels (<code>=</code> and <code>IN (…)</code>), or both. <code>:allow</code> is one or more of <code>:read</code> <code>:write</code>.</p>
+ [{:effect :allow :principal {:orn "orn:acme-platform:client:billing-*"}       :permissions [:write]}
+  {:effect :allow :principal {:labels "org.com/team=settlement"}               :permissions [:read]}
+  {:effect :allow :principal {:labels "org.com/owner=data-platform"}           :permissions [:read]}
+  {:effect :deny  :principal {:orn "orn:acme-platform:client:billing-sandbox"} :permissions [:read :write]}]}</div>
+            <p class="field-note">A statement matches by ORN, by labels (<code>=</code> and <code>IN (…)</code>), or both. <code>*</code> is a wildcard in the ORN and in label values. <code>:permissions</code> is one or more of <code>:read</code> <code>:write</code>.</p>
           </div>
         </section>
         <section class="panel" aria-labelledby="clients-title">
-          <div class="panel-header"><div><h2 id="clients-title">Clients with access</h2><p class="panel-note">Registered clients that currently match a statement above.</p></div></div>
+          <div class="panel-header"><div><h2 id="clients-title">Clients with access</h2><p class="panel-note">Registered clients evaluated against the policy above.</p></div></div>
           <div class="table-wrap"><table><thead><tr><th>Client</th><th>Owner</th><th>Effective permission</th><th>Matched by</th></tr></thead><tbody>
-            <tr><td><a href="client-detail.html">billing-ingestor</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Write</span></td><td>ORN</td></tr>
-            <tr><td><a href="client-detail.html">billing-settlement-worker</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Read</span></td><td>labels <code>org.com/team=settlement</code></td></tr>
-            <tr><td><a href="client-detail.html">analytics-loader</a></td><td><span class="tag">org.com/owner=data-platform</span></td><td><span class="tag">Read</span></td><td>labels <code>org.com/owner=data-platform</code></td></tr>
+            <tr><td><a href="client-detail.html">billing-ingestor</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Write</span></td><td>Allow — ORN <code>billing-*</code></td></tr>
+            <tr><td><a href="client-detail.html">billing-settlement-worker</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="tag">Read</span></td><td>Allow — labels <code>org.com/team=settlement</code></td></tr>
+            <tr><td><a href="client-detail.html">analytics-loader</a></td><td><span class="tag">org.com/owner=data-platform</span></td><td><span class="tag">Read</span></td><td>Allow — labels <code>org.com/owner=data-platform</code></td></tr>
+            <tr><td><a href="client-detail.html">billing-sandbox</a></td><td><span class="tag">org.com/owner=payments-team</span></td><td><span class="status paused">None</span></td><td>Deny wins — matched Allow <code>billing-*</code> and Deny <code>billing-sandbox</code></td></tr>
           </tbody></table></div>
         </section>
         <section class="panel" aria-labelledby="discovery-title">

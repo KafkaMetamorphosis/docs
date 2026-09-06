@@ -83,6 +83,7 @@
                   <div class="label-builder-controls">
                     <select id="action-kind" aria-label="Action">
                       <option value="add_label">add_label</option>
+                      <option value="remove_label">remove_label</option>
                       <option value="set_status">set_status</option>
                       <option value="update_field">update_field</option>
                       <option value="increase_field_by">increase_field_by</option>
@@ -132,6 +133,7 @@ On the latest samples, 2 would trigger now:
 
     const argSpec = {
       add_label: ['label key', 'label value'],
+      remove_label: ['label key', null],
       set_status: ['status', null],
       update_field: ['field', 'value'],
       increase_field_by: ['field', 'amount to add'],
