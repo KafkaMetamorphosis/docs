@@ -1059,9 +1059,10 @@ agent is stateless, push-driven, and never writes Franz's desired state or
 creates a `kafka_topic` row (placement does — ADR-API-009).
 
 - **New gRPC `ResourceProviderService`** (`agent_resource_provider.proto`, no REST
-  gateway): `WatchPartitionAssignments` (server stream — Franz sends the full
-  in-scope partition set on open, one `PartitionAssignment` delta per change
-  after) and `ReportPartitionReconciliation` (unary — one `PartitionReconciliationReport`
+  gateway): `WatchPartitionAssignments` (server stream — Franz sends a
+  `StreamScope` message on open naming the in-scope clusters, then the full
+  in-scope partition set, then one `PartitionAssignment` delta per change) and
+  `ReportPartitionReconciliation` (unary — one `PartitionReconciliationReport`
   per partition whenever its outcome changes).
 - **Scope is server-side and label-based.** A Kafka Cluster is in scope for an
   agent iff, for **every** `franz.placement-selector/<key>=<value>` on the

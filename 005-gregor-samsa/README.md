@@ -180,9 +180,11 @@ This adds two prefixes to the `003.1` reserved-label table (see
 ## 1.3 Transport
 
 - **`WatchPartitionAssignments` — server-streaming**, Gregor Samsa → Franz. One
-  long-lived stream per instance. On open, Franz sends the **full current set**
-  of in-scope async channel partitions (every one as `change = SET`); thereafter
-  one message per change.
+  long-lived stream per instance. On open, Franz sends — in order — a single
+  **`StreamScope`** message (the in-scope clusters, name + FRN + bootstrap;
+  informational, so the agent can log its scope even when nothing is placed),
+  then the **full current set** of in-scope async channel partitions (every one
+  as `change = SET`); thereafter one message per change.
 - **`ReportPartitionReconciliation` — unary**, Gregor Samsa → Franz. One call per
   partition whenever the reconcile outcome for that partition changes.
 - **Reconnect = full resync.** On stream drop / restart / Franz downtime the
