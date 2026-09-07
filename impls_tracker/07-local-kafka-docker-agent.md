@@ -28,7 +28,7 @@ All three were **asked**:
 - **Follow-up (2026-09-06, asked by user):** "make agent should seed/reuse a local
   agent registration itself." Implemented: with no `TOKEN=`, the target sets
   `FRANZ_REGISTER=1` and the agent self-registers on startup via
-  `pkg/localkafka/register.go` — `GetAgent(name)` → `CreateAgent` (NotFound) or
+  `pkg/localkafkaagent/register.go` — `GetAgent(name)` → `CreateAgent` (NotFound) or
   `RotateAgentToken` (exists), erroring if the name is a deleted agent. Uses the
   returned token for the authed gRPC connection. `TOKEN=`/`AGENT_NAME=` still
   override. Local-dev only — Franz's `AgentService` is unauthenticated there.
@@ -78,7 +78,7 @@ From `franz/`:
 
 - Codex out of quota → Claude implemented the whole deliverable.
 - Agents are "deliberately simple" (002-monorepo-structure) — plain packages
-  under `pkg/localkafka/`, no hexagonal layering, no `fx`.
+  under `pkg/localkafkaagent/`, no hexagonal layering, no `fx`.
 - New deps: `github.com/twmb/franz-go` (+ `pkg/kadm` for the e2e),
   `github.com/docker/docker` (Engine API SDK) and its transitive tree.
 - No CI change — the fake-driver tests run in the existing `go` job; the
@@ -86,7 +86,7 @@ From `franz/`:
 - `Makefile` gains `agent` and `agent-e2e`; `webconsole/README` documents the
   "`make agent` (self-registers) → register cluster" path to a live broker.
 - **2026-09-06 follow-up commit** (`impl/07` branch, PR #12): self-register for
-  `make agent` (`FRANZ_REGISTER=1`, `pkg/localkafka/register.go`), Makefile
+  `make agent` (`FRANZ_REGISTER=1`, `pkg/localkafkaagent/register.go`), Makefile
   `agent` target no longer requires `TOKEN=`, `agent-e2e` now goes through the
-  self-register path. `go build/vet/test ./pkg/localkafka/...` clean;
+  self-register path. `go build/vet/test ./pkg/localkafkaagent/...` clean;
   `make agent-e2e` green.

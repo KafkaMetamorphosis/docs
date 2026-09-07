@@ -88,7 +88,7 @@ Codex session: — (codex `exec` returned "You've hit your usage limit" on the f
 - `agent.New` signature changed (added `provisioningLabels` param) — all callers
   and tests updated.
 - **Follow-up (same day, user request):** the `FRANZ_REGISTER=1` self-register
-  path from deliverable 07 (`pkg/localkafka/register.go`) was removed as
+  path from deliverable 07 (`pkg/localkafkaagent/register.go`) was removed as
   "dev code in the agent binary". Replaced by a **DB seed**: `franz/local/`
   (`docker-compose.yml` + `seed/01-local-agent.sql`) installs the
   `local-kafka-agent` row (schema + a fixed public dev token) via `make deps`
