@@ -43,10 +43,9 @@ questions before hitting its session limit. Orchestrator answered the open ADR
 questions by taking the ADR's leaning positions; see "Positions taken" in the
 deliverable file.)_
 
-## Spec / ADR edits owed (docs repo — separate commit)
+## Spec / ADR edits — DONE (2026-09-07, docs `main`)
 
-Each is spec catching up to what an approved plan item (12) implements, flagged
-for review in the PR:
+All applied. Each is spec catching up to what merged deliverable 12 implements:
 
 - `003-franz/003.1-conventions.md` — reserved-label table gains
   `franz.placement-selector/*` (on Agent) and `franz.placement/*` (on Kafka

@@ -88,7 +88,9 @@ blocking questions. Both 003.7 OQs were answerable from ADR-API-009/010/011.)_
   3. `TestPlacementMarksMisplacedAndMovesNothing` (`misplaced = true`,
      `kafka_cluster` unchanged even with a second eligible cluster present).
 
-## Spec / ADR edits owed (docs repo — separate commit / follow-up)
+## Spec / ADR edits — DONE (2026-09-07, docs `main`)
+
+All applied in one pass (`003.1` / `003.6` / `003.7` / `003.9` / `DECISIONS.md`).
 
 1. **`003.7`** — three passages say an unplaceable shard gets a `PENDING` /
    `kafka_cluster = NULL` **row** (lines ~22–24, the "Selection algorithm" tail

@@ -986,6 +986,14 @@ Refines `003.4` / `003.6`. Driven by impls_plan deliverables 10–13.
   The cost is that an unplaceable channel shows no per-shard "PENDING, unplaced" visibility — the
   channel's `channel_partitions` plus the placed count carry that instead.
 - Pause / Resume / Delete on the channel still cascade to whatever shards exist at the time.
+- **Seeding the shape** (deliverable 13, `003.6` OQ1): `partitions` / `replication_factor` come from
+  the chosen cluster's `cluster_configuration` keys `partitions` / `replication-factor` (default `1`
+  each), and those two keys are **stripped from the materialised config merge** — they seed dedicated
+  fields, they are not Kafka topic-config. No channel-level hint.
+- **Misplaced marker** (deliverable 13): placement also owns `KafkaTopic.misplaced` / `misplaced_reason`
+  — set when a placed shard's cluster leaves the channel's affinity, goes `PAUSED`/`DELETED`, or gains
+  a `drain` taint; cleared automatically when it matches again; never bumps `generation`. The marker
+  is all deliverable 13 ships — the actual relocation is the migration flow (`003.13`, deliverable 17).
 
 ### ADR-API-010: cluster config stays a map field; agent defaults are labels
 
