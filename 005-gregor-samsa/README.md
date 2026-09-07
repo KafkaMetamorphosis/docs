@@ -464,7 +464,7 @@ separately):
     hard-scoped to `/franz.v1.ClusterProviderService/`. Widen it to also cover
     `/franz.v1.ResourceProviderService/` and `/franz.v1.TelemetryService/`.
 
-### Placement (deliverable 11)
+### Placement (deliverable 12)
 
 12. Placement already creates `kafka_topic` rows in `PENDING` (ADR-API-009). It
     must additionally **notify** the scope's agent (via change #10) when a row is
