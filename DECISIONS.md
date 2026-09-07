@@ -961,3 +961,20 @@ Extends ADR-006 / `003.9`. Driven by impls_plan deliverable 08 (console resource
   image ref (tag / digest / mirror), precedence over `kafka-version`, feeds the recipe hash.
 - Rationale: makes provisioning intent discoverable and less error-prone without coupling Franz to
   any agent's recipe logic or making the cluster↔agent link enforced.
+
+### ADR-API-009: a channel's shards are materialised at placement, not at create
+
+Refines `003.4` / `003.6`. Driven by impls_plan deliverables 10–11.
+
+- `CreateAsyncChannel` writes **only** the `async_channel` row. `channel_partitions` is the declared
+  shard count; no `kafka_topic` rows are created yet.
+- **Placement** (`003.7`, deliverable 11) creates the `channel_partitions` shard `kafka_topic` rows
+  the moment it can assign them a cluster, seeding `partitions` / `replication_factor` /
+  `materialized_configuration` from that cluster's `cluster_configuration`.
+- A channel with no eligible cluster has **zero shards** until one appears; `GetAsyncChannel` surfaces
+  "M of N shards placed". `ListKafkaTopics(async_channel=…)` is empty until then.
+- Rationale: no placeholder `kafka_topic` rows carrying fake `1/1` partition counts and an empty
+  config merge; a shard row exists only once it is real (has a cluster and a materialised config).
+  The cost is that an unplaceable channel shows no per-shard "PENDING, unplaced" visibility — the
+  channel's `channel_partitions` plus the placed count carry that instead.
+- Pause / Resume / Delete on the channel still cascade to whatever shards exist at the time.
