@@ -1038,3 +1038,74 @@ free-form **labels**.
   `franz.placement-selector/*`) is a separate concern that lands with Gregor
   Samsa (deliverable 12); channel→cluster **placement** (`franz.affinity/*`,
   `003.7`) is unchanged.
+
+### ADR-API-011: Resource Provider agent contract (Gregor Samsa)
+
+Formalises `005-gregor-samsa` Part 1 + Part 2 as the second agent-interaction
+contract. Driven by impls_plan deliverable 12. Mirrors the Cluster Provider
+contract (ADR-006) in transport and shape.
+
+**Principle.** Franz is the sole source of truth for desired state; a Resource
+Provider agent reconciles real Kafka topics *to* it and reports outcomes. The
+agent is stateless, push-driven, and never writes Franz's desired state or
+creates a `kafka_topic` row (placement does — ADR-API-009).
+
+- **New gRPC `ResourceProviderService`** (`agent_resource_provider.proto`, no REST
+  gateway): `WatchPartitionAssignments` (server stream — Franz sends the full
+  in-scope partition set on open, one `PartitionAssignment` delta per change
+  after) and `ReportPartitionReconciliation` (unary — one `PartitionReconciliationReport`
+  per partition whenever its outcome changes).
+- **Scope is server-side and label-based.** A Kafka Cluster is in scope for an
+  agent iff, for **every** `franz.placement-selector/<key>=<value>` on the
+  agent's `Agent.labels`, the cluster carries `franz.placement/<key>=<value>` on
+  its `KafkaCluster.labels`. A plain conjunction of exact pairs — **not** the
+  `003.1` selector grammar (that stays reserved for channel→cluster affinity).
+  An agent with **no** selector labels matches **nothing** (a deliberate
+  departure from `003.1`'s "empty selector matches everything", so a
+  misconfigured instance cannot silently claim the whole fleet). Franz evaluates
+  the match — the agent runs no selector logic. Scope is dynamic: an
+  agent-label, cluster-label or channel/shard change re-resolves it and emits
+  `SET` for newly-in-scope partitions and `REMOVED` (`reason = SCOPE_LOSS`) for
+  departed ones — scope loss never touches the real Kafka topic.
+- **Generation-gated reporting.** Each `PartitionAssignment` carries the
+  `kafka_topic.generation` token; the report echoes it. Franz applies the report
+  only when the echoed generation still matches the row's current generation. A
+  stale report (desired changed while the agent worked) is acknowledged
+  (`applied = false`) but does **not** move the row to `READY`; Franz has already
+  re-emitted `SET` with the new generation. A reconcile report is not a
+  desired-state change and never bumps `generation` — it stamps
+  `reconciled_generation`. Outcome → state: `CREATED`/`UPDATED`/`NOOP` → `READY`,
+  `DELETED` → `DELETED`, `ERROR` → `ERROR` (+ `last_reconcile_message`). This
+  resolves `003.6` OQ4.
+- **Deletion is guarded.** On `REMOVED` (ordinary delete, not `SCOPE_LOSS`) the
+  agent runs two hard checks before deleting — unconsumed data (`listOffsets`
+  earliest < latest on any partition) and committed consumer-group offsets on
+  the topic — and reports `ERROR` with a structured message if either fails,
+  never deleting. An operator clears the blocker and Franz re-emits `REMOVED` on
+  the next trigger/reconnect. RF changes and partition-count *decreases* are
+  `ERROR` for now (a reassignment plan is a future part).
+- **Telemetry (Part 2).** `TelemetryService` gains an **additive**
+  `StreamIndicatorSamples` client-streaming RPC (the unary `PublishIndicatorSamples`
+  stays for one-shot publishers); no breaking change. Gregor Samsa sweeps every
+  in-scope cluster + partition on a configurable interval (default 60s) plus an
+  immediate sample right after each reconcile, publishing the topic- and
+  cluster-level structural indicators of `005` §2.1. Samples are the same
+  append-only 30-day series as every other indicator (ADR-API-005). A **minimal
+  `indicator_sample` table** ships with deliverable 12; **deliverable 14**
+  (telemetry ingest) adopts it and adds the `indicator` registry that makes
+  pre-registration enforceable. Until then any indicator name is accepted.
+- **Auth.** The agent-auth bearer interceptor (ADR-006 §2) is widened from
+  `ClusterProviderService` to also cover `ResourceProviderService` and
+  `TelemetryService`. `Agent.type` stays organisational only (`003.9`) — a
+  `RESOURCE_PROVIDER` agent may call `TelemetryService`.
+- **Persistence.** `kafka_topic` gains `reconciled_generation bigint` (nullable —
+  the last generation an agent confirmed) and `last_reconcile_message text`. No
+  reconcile-history table in v1 (`003.11` OQ4).
+- **Placement hand-off.** Deliverable 13 task 13.8 wires shard-`kafka_topic`-row
+  creation into the same partition-assignment publisher; until then a row change
+  is picked up on the agent's next reconnect resync.
+
+**Deferred / open.** Overlapping scopes — two agents whose selectors both match a
+cluster (005 OQ1) — is not yet handled: both currently receive the cluster's
+partitions. Horizontal scale-out of one Gregor Samsa scope (005 OQ7) is not
+modelled. ACLs / Kafka users / quotas (005 Parts 3–5) are out of scope.
