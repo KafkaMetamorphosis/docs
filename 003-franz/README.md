@@ -6,7 +6,7 @@ Franz is the **control plane** for an async fleet. It stores the declared state 
 async resources, applies fleet-wide governance, and receives signals about their
 realization. Franz **never connects to Kafka** — registered agents do the
 real-world work (`../001-architecture-overview.md`,
-`../104-kafka-topic-reconciliation/`, `../105-odradek/`).
+`../004-local-kafka-docker-agent/`, `../005-gregor-samsa/`, `../105-odradek/`).
 
 ## The model
 
