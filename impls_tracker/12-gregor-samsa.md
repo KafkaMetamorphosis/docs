@@ -3,7 +3,7 @@
 Deliverable: `franz/docs/impls_plan/12-gregor-samsa.md`
 Status: ✅ done (12.18 real-Docker e2e written but not executed — see Verification)
 Executed by: claude (claude-sonnet-5) — codex unavailable (hit session limit early); implemented directly
-Started: 2026-09-07   Completed: 2026-09-07   Commit: franz `5edecf4`
+Started: 2026-09-07   Completed: 2026-09-07   Commit: franz `5edecf4` (+ `6a0a00a` LabelEditor fix on impl/11, `cb3ce88` seeded `local-1` cluster)
 Codex session: — (never started; permission classifier blocked `codex exec`, then the fallback agent hit its session limit ~task 12.18; orchestrator finished + verified)
 
 Branch: `impl/12-gregor-samsa` (stacked on `impl/11-cluster-and-agent-config`, per user).
@@ -109,3 +109,20 @@ for review in the PR:
   Follow-up: decide refuse-second-stream vs. warn, then enforce.
 - Real-Docker e2e (`TestGregorSamsaEndToEnd`) should be run before deliverable 13
   builds on this.
+
+## Post-merge follow-ups (same branch)
+
+- `6a0a00a` (on `impl/11`, merged in as `e8d14c4`) — **LabelEditor bug fix**:
+  a label typed into the console's key/value inputs but not "Add label"-ed was
+  silently dropped on Save/Register. Now flushed on focusout. Surfaced while
+  the user was adding `franz.placement/env=local` to a cluster. Affects the
+  Kafka Cluster + Agent forms; PR #20 (async channel UI) needs the same via a
+  rebase. Tests in `LabelEditor.test.tsx` + `ClusterEdit.test.tsx`.
+- `cb3ce88` — **seeded `local-1` Kafka Cluster** (user request). `local/seed/`
+  now: `01` local-kafka-agent · `02-local-cluster.sql` the `local-1` cluster
+  (provider `local-kafka-agent`, `franz.placement/env=local`, config = the
+  agent's advertised defaults) · `03-gregor-samsa.sql` (was `02`) the RP agent
+  `franz.placement-selector/env=local`. The whole local loop —
+  `make dev` + `make agent` + `make gregorsamsa` — now needs no console step.
+  All three seeds idempotent (verified re-run); `local-1` revives to ACTIVE if
+  a prior run left it DELETED. README local-loop section rewritten.
