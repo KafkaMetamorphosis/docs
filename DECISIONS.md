@@ -964,11 +964,11 @@ Extends ADR-006 / `003.9`. Driven by impls_plan deliverable 08 (console resource
 
 ### ADR-API-009: a channel's shards are materialised at placement, not at create
 
-Refines `003.4` / `003.6`. Driven by impls_plan deliverables 10–12.
+Refines `003.4` / `003.6`. Driven by impls_plan deliverables 10–13.
 
 - `CreateAsyncChannel` writes **only** the `async_channel` row. `channel_partitions` is the declared
   shard count; no `kafka_topic` rows are created yet.
-- **Placement** (`003.7`, deliverable 12) creates the `channel_partitions` shard `kafka_topic` rows
+- **Placement** (`003.7`, deliverable 13) creates the `channel_partitions` shard `kafka_topic` rows
   the moment it can assign them a cluster, seeding `partitions` / `replication_factor` /
   `materialized_configuration` from that cluster's `cluster_configuration`.
 - A channel with no eligible cluster has **zero shards** until one appears; `GetAsyncChannel` surfaces

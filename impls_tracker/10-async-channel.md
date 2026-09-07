@@ -12,7 +12,7 @@ Codex session: — (probe returned "You've hit your usage limit")
 - **Asked by:** claude   **Answered by:** user
 - **Answer:** **not at `CreateAsyncChannel`.** The channel-create is a single
   `async_channel` row; `channel_partitions` is the declared count. **Placement**
-  (deliverable 12) materialises the shard rows when it can assign a cluster,
+  (deliverable 13) materialises the shard rows when it can assign a cluster,
   seeding `partitions` / `replication_factor` / `materialized_configuration` from
   that cluster's `cluster_configuration`. A channel with no eligible cluster has
   **0 shards**. Spec amended: `003.4` + new **ADR-API-009** (docs `6687748`).
@@ -29,8 +29,8 @@ Codex session: — (probe returned "You've hit your usage limit")
 - **No proto change** — `AsyncChannelService` + `AccessPolicy` shapes already
   generated.
 - `access_policy` types live in their own `pkg/franz/core/domain/accesspolicy`
-  package (deliverable 16's engine extends them).
-- `ListChannelClients` handler returns `codes.Unimplemented` (deliverable 16).
+  package (deliverable 17's engine extends them).
+- `ListChannelClients` handler returns `codes.Unimplemented` (deliverable 17).
 - Delete / Pause / Resume cascade to shards via a channel-repo `MutateWithShards`
   (channel + its shards `FOR UPDATE` in one txn) — a no-op until placement
   creates shards, but written now.
@@ -61,7 +61,7 @@ _(the two decisions above)_
 - codex out of quota → claude implemented the whole deliverable.
 - **ADR-API-009** — shard `kafka_topic` rows are created by placement
   (deliverable 12), not at `CreateAsyncChannel`. Amended 003.4, added the ADR,
-  reworded deliverable 10 (10.3/10.9/Done-when) and deliverable 12 (12.3/12.4/
+  reworded deliverable 10 (10.3/10.9/Done-when) and deliverable 13 (13.3/13.4/
   11.6 own shard creation). Docs `6687748`.
 - `persistTopicTx` extracted in `postgres/topic.go`, shared by `MutateChannelShards`
   and the channel repo's `MutateWithShards`.
