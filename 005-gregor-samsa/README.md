@@ -84,7 +84,7 @@ the resource-specific reconcile logic and the desired-state payload change.
                          ┌───────────────────────────────────────┐
                          │           Gregor Samsa (one process)   │
                          │  scope = clusters whose franz.placement/* │
-                         │          match my franz.selector/*     │
+                         │          match my franz.placement-selector/*     │
                          │  ┌───────────┐  ┌───────────┐          │
                          │  │ reconcile │  │  observe  │          │
                          │  └─────┬─────┘  └─────┬─────┘          │
@@ -129,7 +129,7 @@ the resource-specific reconcile logic and the desired-state payload change.
 operator            Franz                              Gregor Samsa
    │ register agent ──▶│  mint token (shown once)
    │  type RESOURCE_PROVIDER
-   │  labels: franz.selector/env=prod, franz.selector/org=payments
+   │  labels: franz.placement-selector/env=prod, franz.placement-selector/org=payments
    │ ◀── token         │
    │                   │      ◀── WatchPartitionAssignments (stream, Bearer token)
    │                   │  compute scope = clusters matching this agent's selector
@@ -144,13 +144,13 @@ operator            Franz                              Gregor Samsa
 
 ## 1.2 Scope — which clusters an instance handles
 
-A Gregor Samsa instance advertises its scope as reserved **`franz.selector/*`**
+A Gregor Samsa instance advertises its scope as reserved **`franz.placement-selector/*`**
 labels on its own `Agent.labels` (set at registration or via `UpdateAgent`). A
 Kafka Cluster describes its coordinates with reserved **`franz.placement/*`**
 labels on `KafkaCluster.labels`.
 
 **Match rule** — a cluster is *in scope* for an instance iff, for **every**
-`franz.selector/<key> = <value>` on the agent, the cluster carries
+`franz.placement-selector/<key> = <value>` on the agent, the cluster carries
 `franz.placement/<key> = <value>`. Extra `franz.placement/*` keys on the cluster
 are ignored. This is a plain conjunction of exact key/value pairs — **not** the
 `003.1` selector-expression grammar (that grammar stays reserved for
@@ -158,18 +158,18 @@ channel→cluster affinity).
 
 | Side | Label | Example |
 |---|---|---|
-| Gregor Samsa `Agent.labels` | `franz.selector/<key>` | `franz.selector/env=prod`, `franz.selector/org=payments` |
+| Gregor Samsa `Agent.labels` | `franz.placement-selector/<key>` | `franz.placement-selector/env=prod`, `franz.placement-selector/org=payments` |
 | Kafka Cluster `KafkaCluster.labels` | `franz.placement/<key>` | `franz.placement/env=prod`, `franz.placement/org=payments`, `franz.placement/region=us-east-1` |
 
 - **Empty selector set matches _no_ clusters.** An agent with zero
-  `franz.selector/*` labels is inert — a deliberate departure from the `003.1`
+  `franz.placement-selector/*` labels is inert — a deliberate departure from the `003.1`
   "empty selector matches everything" rule, so a misconfigured instance cannot
   silently claim the whole fleet.
 - **Franz evaluates the match**, server-side, because it holds both the agent's
   labels and every cluster's labels. The stream to a given agent carries only
   in-scope partitions. Gregor Samsa does not run selector logic itself.
 - **Scope is dynamic.** If a cluster's `franz.placement/*` labels change, or the
-  agent's `franz.selector/*` labels change, Franz recomputes and emits
+  agent's `franz.placement-selector/*` labels change, Franz recomputes and emits
   `SET` for newly in-scope partitions and `REMOVED` (scope-loss variant, see
   §1.4) for ones that left. Scope loss does **not** delete the Kafka topic — it
   just stops this instance from managing it.
@@ -444,10 +444,10 @@ separately):
 
 ### Domain / usecases
 
-6. `core/domain/agent` — parse & validate reserved `franz.selector/*` labels.
+6. `core/domain/agent` — parse & validate reserved `franz.placement-selector/*` labels.
 7. `core/domain/cluster` — document `franz.placement/*` as reserved (no schema
    change; they live in `labels`).
-8. **Scope resolver** — given an agent's `franz.selector/*` and all clusters'
+8. **Scope resolver** — given an agent's `franz.placement-selector/*` and all clusters'
    `franz.placement/*`, produce the in-scope cluster set; recomputed on agent
    label change and on cluster label change.
 9. `core/usecases/resourceprovider` — `InitialPartitionAssignments(ctx)` (scoped
@@ -477,7 +477,7 @@ separately):
 **Invariants**
 
 - An in-scope cluster is handled by **exactly one** Gregor Samsa instance.
-  Operators must keep `franz.selector/*` sets disjoint across instances.
+  Operators must keep `franz.placement-selector/*` sets disjoint across instances.
 - Gregor Samsa never writes to Franz's desired state and never creates a
   `kafka_topic` row — placement does.
 - Franz's `materialized_configuration` is authoritative for config; Gregor Samsa
@@ -488,7 +488,7 @@ separately):
 **Open questions**
 
 1. **Overlapping scopes.** Should Franz *reject* an agent whose
-   `franz.selector/*` would make a cluster match two live agents, or just warn
+   `franz.placement-selector/*` would make a cluster match two live agents, or just warn
    and pick one deterministically? (Leaning: warn + refuse the second stream for
    the contested clusters.)
 2. **`franz.placement/*` vs. free-form labels.** Channel→cluster affinity
