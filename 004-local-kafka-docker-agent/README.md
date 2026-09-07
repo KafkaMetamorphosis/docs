@@ -13,10 +13,10 @@ Related: `003-franz/003.9-agents` (Agent registry), `003-franz/003.3-kafka-clust
 ## Vocabulary
 
 - **Intent** — the `KafkaCluster` registration in Franz: connection strings,
-  `cluster_configuration`, and `franz.provisioning/*` labels. Franz never holds
-  deployment mechanics.
-- **Recipe** — agent-owned logic that turns intent into containers. Selected by
-  `franz.provisioning/deployment-type`. Feature 1 ships one: `local-docker`.
+  `cluster_configuration`, and the typed `brokers` / `disk_size`. Franz never
+  holds deployment mechanics or the container image.
+- **Recipe** — agent-owned logic that turns intent into containers. One recipe
+  family per agent — this agent ships `local-docker`.
 - **Assignment** — the desired state of one cluster, pushed to the agent that owns
   it (`KafkaCluster.cluster_provider_agent == agent.name`).
 
@@ -28,7 +28,8 @@ operator                 Franz                         agent (local, Docker)
    │ ◀── token               │
    │                         │        ◀── WatchClusterAssignments (stream, Bearer token)
    │ register KafkaCluster ─▶ │  cluster_provider_agent = <agent>
-   │   franz.provisioning/*   │  ─── assignment(cluster desired state) ──▶
+   │   cluster_configuration  │  ─── assignment(cluster desired state) ──▶
+   │   + brokers / disk_size  │
    │                         │                                    render recipe
    │                         │                                    docker: create/start
    │                         │  ◀── ReportClusterStatus(phase, reachable, recipe_hash) ──
@@ -60,33 +61,34 @@ operator                 Franz                         agent (local, Docker)
 - `RotateAgentToken` issues a new token and invalidates the old.
 - This is self-contained and independent of `003.2` (still a placeholder).
 
-## 3. Intent — provisioning via reserved labels
+## 3. Intent — cluster config + typed shape (ADR-API-010)
 
-No new `KafkaCluster` field. Provisioning intent is expressed with the reserved
-**`franz.provisioning/*`** prefix on `KafkaCluster.labels` (added to the `003.1`
-reserved-label set):
+The recipe's inputs come from the `KafkaCluster` itself, delivered on the
+assignment:
 
-| Label | Meaning | Feature 1 (`local-docker`) |
+| Input | Source | `local-docker` behaviour |
 |---|---|---|
-| `franz.provisioning/deployment-type` | selects the recipe family | `local-docker` (only one handled) |
-| `franz.provisioning/kafka-image` | full image ref for an apache/kafka-compatible image (tag, digest, or registry mirror) | used verbatim as the container image |
-| `franz.provisioning/kafka-version` | tag sugar when `kafka-image` is unset | `apache/kafka:<version>`, default `3.7.0` |
-| `franz.provisioning/brokers` | desired broker count | **warned + ignored** if `> 1` |
-| `franz.provisioning/disk-size` | volume size hint | ignored locally |
+| Kafka version | `cluster_configuration["kafka-version"]` | `apache/kafka:<version>`, default `3.9.0`. The image is the agent's choice — a `kafka-image` override is **not** modelled. |
+| Broker count | `KafkaCluster.brokers` (typed, `ClusterAssignment.brokers`) | **warned + single node** if `> 1` |
+| Disk size | `KafkaCluster.disk_size` (typed, `ClusterAssignment.disk_size`) | ignored locally |
+| Broker settings | other `cluster_configuration` keys, via the recipe's allow-list | passed through as `KAFKA_*` env; unknown keys warned + dropped |
 
-`kafka-image` takes precedence over `kafka-version`; the resolved ref feeds the
-recipe hash, so changing it recreates the container (data volume kept). It must
-be an apache/kafka-compatible image — the recipe renders the KRaft env for that
-image, not an arbitrary Kafka distribution.
+There is no `deployment-type` — one recipe family per agent; you select
+`local-docker` by pointing the cluster at this agent.
 
-The prefix is open — more keys are added without a breaking change. The agent
-reads only the keys its recipe understands. That set is published as the agent's
-`Agent.provisioning_labels` schema (`003.9`) so the console can pre-fill and
-constrain the fields on a cluster form: `deployment-type` (`["local-docker"]`,
-default `local-docker`, required), `kafka-version` (default `3.7.0`),
-`kafka-image` (free text). For local dev the schema (and the agent registration
-itself) is installed by the DB seed — `franz/local/seed/01-local-agent.sql`,
-applied by `make deps`.
+`cluster_configuration` keys are Franz-friendly (`partitions`,
+`replication-factor`, `retention.ms`, …); the recipe / config-merge translate to
+real Kafka keys. The resolved version + allow-listed settings feed the recipe
+hash, so changing them recreates the container (data volume kept).
+
+The agent advertises sensible defaults as **`franz.default-kafka-config/*`**
+labels on its own registration (`003.9`, ADR-API-010) so the console pre-fills
+the cluster-config form:
+`franz.default-kafka-config/{partitions,replication-factor,retention.ms,kafka-version}`
+plus `franz.default-kafka-config/available-versions=3.7.0,3.9.0,4.0.0` for the
+version picker. Advisory — Franz enforces nothing. For local dev these labels
+(and the agent registration itself) ship in the DB seed —
+`franz/local/seed/01-local-agent.sql`, applied by `make deps`.
 
 ## 4. Status — `cluster_provider_event`
 
@@ -102,24 +104,27 @@ never written by an agent.
 
 ## 5. Recipe — `local-docker`
 
-Agent-owned, keyed by `deployment-type`. `recipe_ref` in the status report is the
-recipe name + a hash of the rendered spec.
+Agent-owned. `recipe_ref` in the status report is the recipe name + a hash of the
+rendered spec.
 
-- **One container per cluster**: `apache/kafka:<version>`, KRaft combined mode
+- **One container per cluster**: `apache/kafka:<version>` (`version` from
+  `cluster_configuration["kafka-version"]`, default `3.9.0`), KRaft combined mode
   (`process.roles=broker,controller`), no ZooKeeper.
 - `advertised.listeners` = the cluster's single `connection_strings[0].bootstrap_urls[0]`
   (must be `PLAINTEXT`, `003.3`). The published host port is parsed from it.
-- Selected keys from `cluster_configuration` become broker config
-  (`default.replication.factor`, `num.partitions`, …); unknown keys are passed
-  through where safe.
+- Allow-listed keys from `cluster_configuration` become broker config
+  (`replication-factor` → `default.replication.factor`, `partitions` →
+  `num.partitions`, …); `kafka-version` is consumed above, not passed as env;
+  unknown keys are warned + dropped.
+- `brokers > 1` on the assignment → warn, provision a single node.
 - Container labels: `franz.managed-by=<agent>`, `franz.cluster=<frn>`,
   `franz.recipe-hash=<sha>`.
 
 ## 6. Agent implementation
 
-- **Go, in the Franz module** — `franz/cmd/local-kafka-agent/` (main) and
-  `franz/pkg/localkafka/` (`stream`, `recipe`, `docker`, `reconcile`). Reuses
-  `pkg/gen/go` and `pkg/shared`.
+- **Go, in the Franz module** — `franz/cmd/localkafkaagent/` (main) and
+  `franz/pkg/localkafkaagent/` (`stream`, `recipe`, `docker`, `reconcile`).
+  Reuses `pkg/gen/go` and `pkg/shared`.
 - **Docker** via the official Go Engine API SDK
   (`github.com/docker/docker/client`) — no `docker compose` dependency.
 - **Stateless.** No local file/db. Current state is discovered each reconcile:
@@ -136,7 +141,7 @@ recipe name + a hash of the rendered spec.
 | Franz | Agent action |
 |---|---|
 | assignment appears | render + create; `PROVISIONING` → `READY` |
-| `franz.provisioning/*` or `cluster_configuration` change | recompute hash; recreate if changed |
+| `cluster_configuration` / `brokers` / `disk_size` change | recompute hash; recreate if changed |
 | `KafkaCluster` `PAUSED` | stop the container (keep it); `STOPPED` |
 | `KafkaCluster` `PAUSED` → `ACTIVE` | start the container; `READY` |
 | `KafkaCluster` `DELETED` | stop + remove container + volume; `REMOVED` |
@@ -157,7 +162,8 @@ service ClusterProviderService {
 
 `ClusterAssignment` carries the cluster `cluster_name` / `cluster_frn`, `change`
 enum (`CHANGE_SET` / `CHANGE_PAUSED` / `CHANGE_REMOVED`), `connection_strings`,
-`cluster_configuration`, and the `franz.provisioning/*` labels.
+`cluster_configuration`, and the typed `brokers` / `disk_size`. (The former
+`provisioning` map is removed by ADR-API-010 — field 6 is `reserved`.)
 
 Also: `agent.proto` — `token` in `CreateAgentResponse`, `RotateAgentToken`
 (`token_hash` stored on the row). `common.proto` — `ClusterProviderPhase`.

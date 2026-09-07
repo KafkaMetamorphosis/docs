@@ -889,6 +889,10 @@ interceptor behind the realm resolver.
 
 ### ADR-006: Cluster Provider agent + local Kafka Docker agent
 
+> **Provisioning-intent parts refined by ADR-API-010** (2026-09-07): `franz.provisioning/*`
+> labels are retired; cluster config lives in the typed `cluster_configuration` map,
+> `brokers` / `disk_size` are typed fields, `deployment-type` / `kafka-image` are dropped.
+
 Full doc: `004-local-kafka-docker-agent/README.md`. The first agent-interaction contract (Cluster
 Providers) and the first agent implementation. Feature 1 of `franz/docs/impls_plan/`.
 
@@ -941,6 +945,10 @@ Supersedes the "ORN" naming in ADR-API-003 / ADR-API-005 and the `003.1` convent
 
 ### ADR-API-008: agents advertise a provisioning-label schema (advisory)
 
+> **Superseded by ADR-API-010** (2026-09-07). The structured
+> `Agent.provisioning_labels` / `ProvisioningLabelSpec` is removed; agents now
+> advertise defaults as plain `franz.default-kafka-config/*` labels.
+
 Extends ADR-006 / `003.9`. Driven by impls_plan deliverable 08 (console resource management).
 
 - **`Agent.provisioning_labels`** — a repeated `ProvisioningLabelSpec { key, description,
@@ -978,3 +986,55 @@ Refines `003.4` / `003.6`. Driven by impls_plan deliverables 10–13.
   The cost is that an unplaceable channel shows no per-shard "PENDING, unplaced" visibility — the
   channel's `channel_partitions` plus the placed count carry that instead.
 - Pause / Resume / Delete on the channel still cascade to whatever shards exist at the time.
+
+### ADR-API-010: cluster config stays a map field; agent defaults are labels
+
+Supersedes **ADR-API-008**. Refines `003.3` / `003.9` / `004`. Driven by impls_plan
+deliverable 11 (cluster & agent configuration model).
+
+**Principle.** A Kafka Cluster (and Kafka Topic) is a Kafka-specific resource, so
+its configuration is a **typed shape** on the object. An Agent is generic — it
+may provision Kafka or RabbitMQ or anything else — so what it *advertises* is
+free-form **labels**.
+
+- **`KafkaCluster.cluster_configuration` stays `map<string,string>`.** It is the
+  single home for Kafka config on a cluster: topic-config defaults
+  (`retention.ms`, `cleanup.policy`, …), the shard defaults `partitions` /
+  `replication-factor`, and `kafka-version`. Keys are **Franz-friendly**
+  (`partitions`, not `num.partitions`); translation to real Kafka broker/topic
+  keys is the consumer's job (the `local-docker` recipe allow-list, the `003.6`
+  config merge). It stays layer 1 of the `003.6` merge and the source placement
+  seeds shard `partitions` / `replication_factor` from.
+- **`KafkaCluster` gains two typed fields** — `brokers` (`int32`) and `disk_size`
+  (`string` size hint). Cluster *shape*, not Kafka config. Carried on
+  `Create` / `Update` (mask paths `brokers` / `disk_size`) and returned on `Get`.
+- **`kafka-image` is dropped.** The Cluster Provider agent picks the image; Franz
+  neither stores nor forwards it.
+- **`deployment-type` is dropped.** One recipe family per agent — you select it
+  by selecting the agent. (If an agent ever needs several, reintroduce it as a
+  config-map key.)
+- **`franz.provisioning/*` labels on the cluster are retired** from the `003.1`
+  reserved set.
+- **Agents advertise console defaults as `franz.default-kafka-config/*` labels**
+  on their own `Agent.labels` — e.g. `franz.default-kafka-config/partitions=4`,
+  `franz.default-kafka-config/retention.ms=604800000`,
+  `franz.default-kafka-config/kafka-version=3.9.0`,
+  `franz.default-kafka-config/available-versions=3.7.0,3.9.0,4.0.0` (a
+  comma-separated meta-key for the version picker). The console reads them to
+  pre-fill a cluster form. **Advisory — Franz enforces nothing**;
+  `cluster_provider_agent` stays an unvalidated string (`003.3`). A bad value
+  fails (or warns) downstream at the agent.
+- **`Agent.provisioning_labels` / `ProvisioningLabelSpec` are removed** — proto
+  message + fields, the `agent.provisioning_labels` jsonb column,
+  `ValidateProvisioningLabels`, and the console's `ProvisioningLabelEditor` /
+  `ProvisioningFields`. Lost with them: `allowed_values` dropdowns, `required`
+  enforcement, per-key descriptions.
+- **`agent_cluster_provider.proto` `ClusterAssignment`** drops the `provisioning`
+  map (`reserved 6`) and gains typed `brokers = 7` / `disk_size = 8`. Franz fills
+  `cluster_configuration` (5) from `KafkaCluster.cluster_configuration` verbatim.
+  The `local-docker` recipe reads `kafka-version` from that map and `brokers`
+  from the typed field.
+- Agent→cluster **watch scoping** (`franz.placement/*` ↔
+  `franz.placement-selector/*`) is a separate concern that lands with Gregor
+  Samsa (deliverable 12); channel→cluster **placement** (`franz.affinity/*`,
+  `003.7`) is unchanged.
