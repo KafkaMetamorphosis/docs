@@ -137,3 +137,31 @@ decisions above followed directly from `003.14` / `005` §2.1 / the precedent
   placeholder — added in 14 because nothing consumed the evaluator yet — is
   removed now that `telemetry.NewService` takes it as a real dependency; fx's
   lazy graph no longer needs forcing.
+
+## Follow-up (2026-09-13, post-merge review)
+
+Two gaps surfaced while answering "which indicators were implemented, and can
+you see them in the UI?" — both addressed, still on `impl/15-telemetry-ingest`
+pending merge:
+
+- **Pre-registration enforcement had no provisioning story.** Gregor Samsa
+  (deliverable 12) has always published 13 concrete structural indicators
+  (`pkg/gregorsamsa/telemetry/telemetry.go`, 005 ADR §2.1), under a comment
+  that said "until the registry exists Franz accepts any name." That grace
+  period ended the moment this deliverable's `FAILED_PRECONDITION` check
+  shipped, and nothing anywhere calls `CreateIndicator` for them — Gregor
+  Samsa's sweep would fail every publish against a fresh database. Fixed for
+  the **local dev loop** with `local/seed/04-indicators.sql` (registers all
+  13, idempotent, verified against a running local Postgres: 13 rows inserted,
+  re-run is a no-op update) and the stale `telemetry.go` comment corrected.
+  **Not fixed for a real deployment** — there is still no equivalent
+  provisioning step outside the local seed; whoever stands up a non-local
+  Franz needs to register these 13 (or its own set) before pointing a
+  Resource Provider agent at it. Worth an ADR or at least a runbook note
+  before this goes near a real cluster.
+- **No console surface for Governance at all.** Confirmed the webconsole has
+  no Indicators/Policies pages and no deliverable's plan (14, 15, or 17)
+  scoped one — a genuine planning gap, not unfinished work. Scoped as new
+  deliverable **[20 — Governance UI](../../franz/docs/impls_plan/20-governance-ui.md)**
+  (Indicator + Policy CRUD, dry-run panel, `PolicyAction` audit log),
+  deliberately not built yet.
