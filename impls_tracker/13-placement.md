@@ -1,6 +1,6 @@
 # Impl tracker — 13 Placement & selection
 
-Deliverable: `franz/docs/impls_plan/13-placement.md`
+Deliverable: `franz/docs/impl_plans/13-placement.md`
 Status: ✅ done
 Executed by: codex → claude (claude-sonnet-5) — codex hit its usage limit (resets 2026-09-28) before writing any code; Claude implemented via the architect agent, orchestrator verified + finalised
 Started: 2026-09-07   Completed: 2026-09-07   Commit: franz `<sha>`

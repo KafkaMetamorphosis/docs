@@ -44,7 +44,7 @@ pkg/
   gen/go/             generated Go stubs — committed; CI verifies they are current
 webconsole/           React application (Vite)
 migrations/           SQL migrations (Flyway)
-docs/impls_plan/      the build plan (one file per deliverable)
+docs/impl_plans/      the build plan (one file per deliverable)
 ```
 
 Gregor Samsa and Odradek remain **separate top-level projects** (their own repos /

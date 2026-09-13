@@ -8,7 +8,7 @@ Franz into a **running Kafka cluster** on the local machine, using Docker.
 
 Related: `003-franz/003.9-agents` (Agent registry), `003-franz/003.3-kafka-cluster`
 (the intent), `003-franz/003.1-conventions` (labels). Implementation plan:
-`franz/docs/impls_plan/` deliverables 06–08.
+`franz/docs/impl_plans/` deliverables 06–08.
 
 ## Vocabulary
 

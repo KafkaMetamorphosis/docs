@@ -1,6 +1,6 @@
 # Impl tracker — 04 Agent registry
 
-Deliverable: `franz/docs/impls_plan/04-agent-registry.md`
+Deliverable: `franz/docs/impl_plans/04-agent-registry.md`
 Status: ✅ done
 Executed by: claude (claude-sonnet-5) — codex unavailable (usage limit resets 2026-09-28)
 Started: 2026-09-06   Completed: 2026-09-06   Commit: c694abb (franz, impl/04-agent-registry)

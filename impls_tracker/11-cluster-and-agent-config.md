@@ -1,6 +1,6 @@
 # Impl tracker — 11 Cluster & agent configuration model
 
-Deliverable: `franz/docs/impls_plan/11-cluster-and-agent-config.md`
+Deliverable: `franz/docs/impl_plans/11-cluster-and-agent-config.md`
 Status: ✅ done
 Executed by: claude (claude-sonnet-5) — codex out of quota (usage limit resets 2026-09-28)
 Started: 2026-09-07   Completed: 2026-09-07

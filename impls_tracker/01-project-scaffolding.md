@@ -1,6 +1,6 @@
 # Impl tracker — 01 Project scaffolding
 
-Deliverable: `franz/docs/impls_plan/01-project-scaffolding.md`
+Deliverable: `franz/docs/impl_plans/01-project-scaffolding.md`
 Status: ✅ done
 Executed by: claude + user (repo/branch) → codex (blocked) → claude (claude-sonnet-5)
 Started: 2026-09-06   Completed: 2026-09-06   Commit: see franz `go-monorepo`
@@ -10,7 +10,7 @@ Codex session: 01a076cb-7154-7012-bb8f-3b2ecd16f814 (model: gpt-5.6-terra) — r
 
 - **Branch strategy** — the Go rewrite lands on a new branch `go-monorepo` cut
   from `main`; one "reset to Go monorepo" commit removes the 49 Clojure files
-  (LICENSE kept) and adds `api/` + `docs/impls_plan/` + the scaffold. Rationale:
+  (LICENSE kept) and adds `api/` + `docs/impl_plans/` + the scaffold. Rationale:
   reviewable, keeps Clojure in history on `main`. (user)
 - **Module location** — the Go module is rooted at `franz/` (module path
   `github.com/KafkaMetamorphosis/franz`), because that is where the git repo and

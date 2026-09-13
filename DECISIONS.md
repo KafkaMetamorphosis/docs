@@ -894,7 +894,7 @@ interceptor behind the realm resolver.
 > `brokers` / `disk_size` are typed fields, `deployment-type` / `kafka-image` are dropped.
 
 Full doc: `004-local-kafka-docker-agent/README.md`. The first agent-interaction contract (Cluster
-Providers) and the first agent implementation. Feature 1 of `franz/docs/impls_plan/`.
+Providers) and the first agent implementation. Feature 1 of `franz/docs/impl_plans/`.
 
 - **Transport** — `ClusterProviderService.WatchClusterAssignments` (server-stream, Franz → agent, full
   set on open then deltas) + `ReportClusterStatus` (unary). New `agent_cluster_provider.proto`. Franz
@@ -949,7 +949,7 @@ Supersedes the "ORN" naming in ADR-API-003 / ADR-API-005 and the `003.1` convent
 > `Agent.provisioning_labels` / `ProvisioningLabelSpec` is removed; agents now
 > advertise defaults as plain `franz.default-kafka-config/*` labels.
 
-Extends ADR-006 / `003.9`. Driven by impls_plan deliverable 08 (console resource management).
+Extends ADR-006 / `003.9`. Driven by impl_plans deliverable 08 (console resource management).
 
 - **`Agent.provisioning_labels`** — a repeated `ProvisioningLabelSpec { key, description,
   allowed_values, default_value, required }` (new message in `agent.proto`). Carried on
@@ -972,7 +972,7 @@ Extends ADR-006 / `003.9`. Driven by impls_plan deliverable 08 (console resource
 
 ### ADR-API-009: a channel's shards are materialised at placement, not at create
 
-Refines `003.4` / `003.6`. Driven by impls_plan deliverables 10–13.
+Refines `003.4` / `003.6`. Driven by impl_plans deliverables 10–13.
 
 - `CreateAsyncChannel` writes **only** the `async_channel` row. `channel_partitions` is the declared
   shard count; no `kafka_topic` rows are created yet.
@@ -997,7 +997,7 @@ Refines `003.4` / `003.6`. Driven by impls_plan deliverables 10–13.
 
 ### ADR-API-010: cluster config stays a map field; agent defaults are labels
 
-Supersedes **ADR-API-008**. Refines `003.3` / `003.9` / `004`. Driven by impls_plan
+Supersedes **ADR-API-008**. Refines `003.3` / `003.9` / `004`. Driven by impl_plans
 deliverable 11 (cluster & agent configuration model).
 
 **Principle.** A Kafka Cluster (and Kafka Topic) is a Kafka-specific resource, so
@@ -1050,7 +1050,7 @@ free-form **labels**.
 ### ADR-API-011: Resource Provider agent contract (Gregor Samsa)
 
 Formalises `005-gregor-samsa` Part 1 + Part 2 as the second agent-interaction
-contract. Driven by impls_plan deliverable 12. Mirrors the Cluster Provider
+contract. Driven by impl_plans deliverable 12. Mirrors the Cluster Provider
 contract (ADR-006) in transport and shape.
 
 **Principle.** Franz is the sole source of truth for desired state; a Resource

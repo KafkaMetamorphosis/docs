@@ -1,6 +1,6 @@
 # Impl tracker — 05 Agent interaction (Cluster Provider)
 
-Deliverable: `franz/docs/impls_plan/05-agent-interaction-cluster-provider.md`
+Deliverable: `franz/docs/impl_plans/05-agent-interaction-cluster-provider.md`
 Status: ✅ done
 Executed by: claude (claude-sonnet-5) — codex unavailable (usage limit resets 2026-09-28)
 Started: 2026-09-06   Completed: 2026-09-06   Commit: c07373b (franz, impl/05-agent-interaction-cluster-provider)

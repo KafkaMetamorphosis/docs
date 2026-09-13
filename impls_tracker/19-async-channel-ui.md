@@ -1,6 +1,6 @@
 # Impl tracker — 19 Async Channel UI
 
-Deliverable: `franz/docs/impls_plan/19-async-channel-ui.md`
+Deliverable: `franz/docs/impl_plans/19-async-channel-ui.md`
 Status: ✅ done
 Executed by: claude (claude-opus-5)
 Started: 2026-09-07   Completed: 2026-09-07

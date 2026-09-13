@@ -1,6 +1,6 @@
 # Impl tracker — 10 Async Channel + access-policy document
 
-Deliverable: `franz/docs/impls_plan/10-async-channel.md`
+Deliverable: `franz/docs/impl_plans/10-async-channel.md`
 Status: ✅ done
 Executed by: claude (claude-sonnet-5) — codex out of quota (usage limit resets 2026-09-28)
 Started: 2026-09-06   Completed: 2026-09-06

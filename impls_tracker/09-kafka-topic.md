@@ -1,6 +1,6 @@
 # Impl tracker — 09 Kafka Topic (read model)
 
-Deliverable: `franz/docs/impls_plan/09-kafka-topic.md`
+Deliverable: `franz/docs/impl_plans/09-kafka-topic.md`
 Status: ✅ done
 Executed by: claude (claude-sonnet-5) — codex out of quota (usage limit resets 2026-09-28)
 Started: 2026-09-06   Completed: 2026-09-06

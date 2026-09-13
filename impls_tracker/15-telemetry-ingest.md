@@ -1,6 +1,6 @@
 # Impl tracker — 15 Telemetry ingest
 
-Deliverable: `franz/docs/impls_plan/15-telemetry-ingest.md`
+Deliverable: `franz/docs/impl_plans/15-telemetry-ingest.md`
 Status: ✅ done
 Executed by: codex → claude (architect agent, claude-opus-5; orchestration claude-sonnet-5) — codex out of quota (resets 2026-09-28)
 Started: 2026-09-13   Completed: 2026-09-13   Commit: franz `bb19115`
@@ -162,6 +162,6 @@ pending merge:
 - **No console surface for Governance at all.** Confirmed the webconsole has
   no Indicators/Policies pages and no deliverable's plan (14, 15, or 17)
   scoped one — a genuine planning gap, not unfinished work. Scoped as new
-  deliverable **[20 — Governance UI](../../franz/docs/impls_plan/20-governance-ui.md)**
+  deliverable **[20 — Governance UI](../../franz/docs/impl_plans/20-governance-ui.md)**
   (Indicator + Policy CRUD, dry-run panel, `PolicyAction` audit log),
   deliberately not built yet.

@@ -1,6 +1,6 @@
 # Impl tracker — 03 Kafka Cluster
 
-Deliverable: `franz/docs/impls_plan/03-kafka-cluster.md`
+Deliverable: `franz/docs/impl_plans/03-kafka-cluster.md`
 Status: ✅ done
 Executed by: claude (claude-sonnet-5) — codex unavailable (usage limit resets 2026-09-28)
 Started: 2026-09-06   Completed: 2026-09-06   Commit: d1fde0a (franz, impl/03-kafka-cluster)

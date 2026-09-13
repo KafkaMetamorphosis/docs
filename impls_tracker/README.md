@@ -1,6 +1,6 @@
 # Implementation trackers
 
-One file per implemented `impls_plan` deliverable (`NN-<slug>.md`), created by the
+One file per implemented `impl_plans` deliverable (`NN-<slug>.md`), created by the
 **`/impl`** skill. Each records, for that deliverable:
 
 - **Decisions** — non-obvious implementation choices and their rationale.
@@ -9,6 +9,6 @@ One file per implemented `impls_plan` deliverable (`NN-<slug>.md`), created by t
 - **Verification** — build / test / lint results.
 - **Notes / deviations** — anything that differs from the plan, handoffs, retries.
 
-The deliverable files themselves (`franz/docs/impls_plan/NN-*.md`) carry the live
+The deliverable files themselves (`franz/docs/impl_plans/NN-*.md`) carry the live
 **Status** and per-task **Landed** (commit + date) plus an **`Executed by:`** line
 naming the agent and model that did the work.

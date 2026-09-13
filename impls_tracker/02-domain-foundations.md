@@ -1,6 +1,6 @@
 # Impl tracker — 02 Domain foundations
 
-Deliverable: `franz/docs/impls_plan/02-domain-foundations.md`
+Deliverable: `franz/docs/impl_plans/02-domain-foundations.md`
 Status: ✅ done
 Executed by: claude (claude-sonnet-5) — codex unavailable (usage limit resets 2026-09-28)
 Started: 2026-09-06   Completed: 2026-09-06   Commit: a84e4ee (franz, go-monorepo)

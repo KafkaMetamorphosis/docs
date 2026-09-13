@@ -1,6 +1,6 @@
 # Impl tracker — 06 Web console bootstrap
 
-Deliverable: `franz/docs/impls_plan/06-web-console-bootstrap.md`
+Deliverable: `franz/docs/impl_plans/06-web-console-bootstrap.md`
 Status: ✅ done
 Executed by: claude (claude-sonnet-5) — codex unavailable (usage limit resets 2026-09-28)
 Started: 2026-09-06   Completed: 2026-09-06   Commit: c57c43c (franz, impl/06-web-console-bootstrap)

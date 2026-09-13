@@ -1,6 +1,6 @@
 # Impl tracker — 12 Gregor Samsa (Resource Provider agent)
 
-Deliverable: `franz/docs/impls_plan/12-gregor-samsa.md`
+Deliverable: `franz/docs/impl_plans/12-gregor-samsa.md`
 Status: ✅ done (12.18 real-Docker e2e written but not executed — see Verification)
 Executed by: claude (claude-sonnet-5) — codex unavailable (hit session limit early); implemented directly
 Started: 2026-09-07   Completed: 2026-09-07   Commit: franz `5edecf4` (+ `6a0a00a` LabelEditor fix on impl/11, `cb3ce88` seeded `local-1` cluster)

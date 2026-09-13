@@ -1,6 +1,6 @@
 # Impl tracker — 14 Governance (Indicator registry + non-placement actions)
 
-Deliverable: `franz/docs/impls_plan/14-governance.md`
+Deliverable: `franz/docs/impl_plans/14-governance.md`
 Status: ✅ done
 Executed by: codex → claude (architect agent, claude-opus-5; orchestration claude-sonnet-5) — codex out of quota (resets 2026-09-28); two agent sessions hit their own session limits, a third + the orchestrator finished
 Started: 2026-09-07   Completed: 2026-09-10   Commit: franz `92fee49`
