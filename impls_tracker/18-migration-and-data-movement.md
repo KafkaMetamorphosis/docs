@@ -3,12 +3,12 @@
 Deliverable: `franz/docs/impl_plans/18-migration-and-data-movement.md`
 Status: ✅ done (18.4's misplaced-shard auto-relocate deferred)
 Executed by: claude (claude-sonnet-5) — codex out of quota (resets 2026-09-28), never ran
-Started: 2026-09-13   Completed: 2026-09-14   Commit: franz `<pending>`
+Started: 2026-09-13   Completed: 2026-09-14   Commit: franz `1a885ff`
 Codex session: — (quota-exhausted, no code)
 
 Branch: `impl/18-migration-and-data-movement` (off `impl/17-access-policy-and-channel-access`,
 PR #30, still open at the time this branch was cut — 18 stacks on it per the
-established convention).
+established convention). This deliverable is franz PR #31.
 
 ## Questions & answers
 
