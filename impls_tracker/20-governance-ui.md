@@ -98,6 +98,21 @@ tradeoffs.
   lifecycle (register → list → dry-run "not applied" → audit trail) verified
   the same way plus `e2e/governance.spec.ts`.
 
+## CI caught a test bug the live smoke test didn't
+
+`e2e/governance.spec.ts` asserted a freshly-registered Indicator's health as
+"No samples yet" — wrong. `indicator/registry.go`'s `Health()` is explicit in
+its own doc comment: "An indicator that has never been sampled is STALE, not
+HEALTHY... treating no data as healthy would let a policy fire off a stale
+reading the moment one arrived late." My earlier live curl smoke test had
+actually shown `"health":"INDICATOR_HEALTH_STALE"` for a brand-new indicator
+in its raw JSON output, but the significance didn't register until the
+`console-e2e` CI job on PR #32 failed on exactly this assertion. Fixed in
+`2cfa417` (one line + a comment quoting the domain doc). `IndicatorList`'s
+own `healthLabel("No samples yet")` fallback for the `UNSPECIFIED` enum value
+is now understood to be effectively dead code for this field in practice —
+harmless to keep as a defensive default, not removed.
+
 ## Notes / deviations
 
 - No codex involvement — implemented directly, following the session's
