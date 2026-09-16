@@ -124,3 +124,37 @@ harmless to keep as a defensive default, not removed.
   stacked-PR convention, even though 20 has no functional dependency on 18 —
   keeping the chain linear avoids a merge-order puzzle later, at the cost of
   20's PR technically carrying 18's diff until 18 merges first.
+
+## Landed on main — 2026-09-16, franz `98f255a`
+
+**The stacked PRs merging did not put 20, 21 or 22 on `main`.** The
+merge-order puzzle the note above hoped to avoid is exactly what happened.
+PRs #32 (20→18), #33 (21→20) and #34 (22→21) each merged into their stack
+*parent*, all within the same two seconds as PR #30 merged
+`impl/17-access-policy-and-channel-access` → `main`. Those merges travelled
+*down* the chain and never propagated back up to `impl/17` before it landed,
+so `main` received 17 and 18 only. All three PRs read MERGED while none of
+their console work existed on `main` — `impl/22-migration-ui` sat 8 commits
+ahead of it for two days.
+
+This surfaced as "the Client and Indicator screens have disappeared" the
+moment a checkout moved to `main`: `webconsole/src/pages/` there had no
+`clients/` or `governance/` directory at all, and `App.tsx` carried none of
+their 12 routes. Nothing had regressed — the screens were never on `main`.
+
+Resolved by merging `origin/main` into `impl/22-migration-ui`
+(merge commit franz `98f255a`, **no conflicts** — the CHANGELOG entries from
+both sides sat in different hunks and auto-merged), verifying the combined
+state, then fast-forwarding `main` to it. Fast-forward rather than a second
+merge commit: `98f255a` already integrates both sides, so `--no-ff` would only
+have added an empty commit.
+
+`main` now contains 17, 18, 20, 21, 22 and the two indicator fixes (franz
+PRs #36, #37) together for the first time. Deliverables 21 and 22 have no
+tracker file of their own; this section is the landing record for all three.
+
+**Convention change:** this landing was done straight to `main`, no PR — per
+the user's decision at the time. Deliverables 01–22 all used the stacked-PR
+flow (`impl/NN-slug` → previous), which is what produced this trap. Any future
+multi-deliverable chain should either merge bottom-up to `main` one PR at a
+time, or skip the stack entirely.
