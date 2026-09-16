@@ -182,7 +182,9 @@ This adds two prefixes to the `003.1` reserved-label table (see
 - **`WatchPartitionAssignments` — server-streaming**, Gregor Samsa → Franz. One
   long-lived stream per instance. On open, Franz sends — in order — a single
   **`StreamScope`** message (the in-scope clusters, name + FRN + bootstrap;
-  informational, so the agent can log its scope even when nothing is placed),
+  **load-bearing, not informational** — the agent opens an AdminClient and
+  resolves a cluster FRN from it, which is what makes the §2.1 cluster-level
+  indicators reportable for an in-scope cluster with nothing placed on it),
   then the **full current set** of in-scope async channel partitions (every one
   as `change = SET`); thereafter one message per change.
 - **`ReportPartitionReconciliation` — unary**, Gregor Samsa → Franz. One call per
@@ -492,7 +494,13 @@ separately):
 1. **Overlapping scopes.** Should Franz *reject* an agent whose
    `franz.placement-selector/*` would make a cluster match two live agents, or just warn
    and pick one deterministically? (Leaning: warn + refuse the second stream for
-   the contested clusters.)
+   the contested clusters.) Still open — but note it is now *reachable* rather
+   than latent: since the agent acts on `StreamScope` (§1.3), two agents matching
+   one cluster both publish §2.1 cluster-level samples against the same
+   `(indicator, resource_frn)` series, where before this only happened once a
+   shard was placed. Both compute the same structural facts from the same broker
+   metadata, so last-writer-wins is currently harmless; resolving this OQ is
+   still the real fix.
 2. **`franz.placement/*` vs. free-form labels.** Channel→cluster affinity
    (`003.7`) matches against *free-form* cluster labels. Agent→cluster scoping
    here uses a dedicated `franz.placement/*` prefix. Is the extra prefix worth it,
