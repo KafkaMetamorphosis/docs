@@ -361,9 +361,9 @@ Franz as **pre-registered indicator samples** over the existing
 | Indicator (proposed) | Unit | Source |
 |---|---|---|
 | `kafka.topic.state` | enum `provisioned` / `diverged` / `missing` | describeTopics/Configs vs desired |
-| `kafka.topic.partitions` | count | describeTopics |
-| `kafka.topic.replication_factor` | count | describeTopics |
-| `kafka.topic.under_replicated_partitions` | count | describeTopics (ISR < RF) |
+| `kafka.topic.partitions` | gauge | describeTopics |
+| `kafka.topic.replication_factor` | gauge | describeTopics |
+| `kafka.topic.under_replicated_partitions` | gauge | describeTopics (ISR < RF) |
 | `kafka.topic.config_drift` | bool | any desired key whose broker value ≠ desired |
 
 `resource_frn` = the async channel partition FRN, `resource_entity` = the Kafka
@@ -373,14 +373,14 @@ topic entity.
 
 | Indicator (proposed) | Unit | Source |
 |---|---|---|
-| `kafka.cluster.broker_count` | count | describeCluster |
-| `kafka.cluster.online_broker_count` | count | describeCluster |
+| `kafka.cluster.broker_count` | gauge | describeCluster |
+| `kafka.cluster.online_broker_count` | gauge | describeCluster |
 | `kafka.cluster.controller_id` | string | describeCluster |
-| `kafka.cluster.total_partition_replicas` | count | metadata sum |
-| `kafka.cluster.replicas_per_broker` | count, one sample per broker (`resource_frn` = broker) | metadata |
-| `kafka.cluster.leaders_per_broker` | count, one sample per broker | metadata |
-| `kafka.cluster.under_replicated_partitions` | count | metadata |
-| `kafka.cluster.offline_partitions` | count | metadata |
+| `kafka.cluster.total_partition_replicas` | gauge | metadata sum |
+| `kafka.cluster.replicas_per_broker` | gauge, one sample per broker (`resource_frn` = broker) | metadata |
+| `kafka.cluster.leaders_per_broker` | gauge, one sample per broker | metadata |
+| `kafka.cluster.under_replicated_partitions` | gauge | metadata |
+| `kafka.cluster.offline_partitions` | gauge | metadata |
 
 `resource_frn` = the `KafkaCluster` FRN (or a `…/broker/<id>` sub-resource for
 per-broker samples), `resource_entity` = the Kafka cluster entity.
@@ -519,3 +519,19 @@ separately):
 7. **Instance ↔ agent-registration cardinality.** One `Agent` row per instance,
    or one `Agent` row shared by a horizontally-scaled Gregor Samsa deployment
    (several processes, same token, same scope, coordinating by cluster)?
+8. **Metric *type* vs. *unit* — one field is doing two jobs.** `Indicator.unit`
+   encodes both the unit of measure (`bytes`, `duration`) *and* the kind of
+   metric (`gauge`, `boolean`, `enum`). Prometheus separates them: type is
+   `counter` / `gauge` / `histogram` / `summary`, unit is `bytes` / `seconds`.
+   The 2026-09-17 `count` → `gauge` rename of the §2.1 table made the
+   conflation visible rather than resolving it — "gauge" is a *type* occupying a
+   *unit* field, so an indicator that is a gauge measured in bytes cannot say
+   both. Should `Indicator` gain a separate `type`, leaving `unit` as a pure
+   unit of measure? Deliberately **not** done: it is a proto + migration +
+   domain change, and it changes how a Policy's `Limit` is interpreted.
+   Revisit when an indicator first needs a type *and* a unit together, or when a
+   genuinely monotonic `counter` appears — nothing in §2.1 is one, every value
+   there goes up *and* down, which is exactly why `count` was the wrong word.
+   Franz's closed `Family` classification (on the wire since 2026-09-17 as
+   `IndicatorFamily`) already carries the comparison semantics, so this is about
+   vocabulary and display, not correctness.
