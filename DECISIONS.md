@@ -1121,7 +1121,7 @@ modelled. ACLs / Kafka users / quotas (005 Parts 3–5) are out of scope.
 
 ### ADR-API-012: Governance rule engine (expr-lang) & console live editor
 
-Full doc: `006-governance/README.md`. Evolves the single-indicator `Policy` model (`003.8`) into composite remediation rules.
+Full doc: `006-governance/README.md`. Implementation plan: `franz/docs/impl_plans/23-governance-rule-engine-and-editor.md`. Evolves the single-indicator `Policy` model (`003.8`) into composite remediation rules.
 
 - **Engine:** `expr-lang/expr` (+3.05 MB, 0 transitive deps) chosen over CEL, OPA, and custom AST. Supports Go-registered host functions (`max`, `stdev_pct`, `max_over`, etc.) and returns compile-time type errors with line/column coordinates.
 - **Document Format:** Rules are authored and stored as single pure YAML documents.
