@@ -26,7 +26,7 @@ and ordered first-match branches. `Policy` can express none of the three.
 
 | Q1a | Aggregates are **expressions** | Q5 | Guard rails are `franz.governance/*` **cluster labels** |
 |---|---|---|---|
-| **Q1b** | Scope = **label-select parent, descend** to sub-resources | **Q7** | Cooldown + in-flight guard + budget **mandatory** |
+| **Q1b** | Scope = **label-select parent, descend** to sub-resources | **Q7** | Cooldown + in-flight guard + action budget **mandatory** |
 | **Q3** | **High** stdev triggers rebalance | **—** | Aggregate vocabulary is a **closed Go-defined set** |
 | **Q4** | Rebalance = **label signal** now; Operation with ADR 007 | | |
 
@@ -37,7 +37,7 @@ Referenced by every detail file.
 ```
 cluster.brokers  cluster.disk_size  cluster.state  cluster.tainted
 topic.partitions  topic.replication_factor  topic.config[<key>]
-budget.<name>                    ← franz.governance/<name> label on the cluster
+governance.<name>                ← franz.governance/<name> label on the cluster
 <indicator-name>                 ← sample set for the descended resources
 ```
 
@@ -46,13 +46,110 @@ Host functions (closed set, defined in Go — no engine has these built in):
 `avg_over(ind, window)`.
 
 **Scope invariants** — one evaluation per matched resource, each with its own
-cooldown and budget state; aggregates never cross the parent, so `max()` is over
+cooldown and action-budget state; aggregates never cross the parent, so `max()` is over
 *that* cluster's brokers, never the fleet. Brokers carry no labels (there is no
 broker table; they exist only as FRN sub-resources), which is why `descend`
 exists.
 
-For a **topic** rule, `budget.*` resolves from the topic's **cluster** — topics
-carry no budget labels.
+### Where `governance.*` comes from
+
+**Resolution point.** When a rule instance is created for a matched resource,
+Franz reads that resource's `franz.governance/*` labels and injects them into the
+expression environment under `governance`. Read **once per rule instance, at
+evaluation time** — so cluster `local-1` and cluster `carol` evaluate the same
+rule text against their own ceilings, and changing a label changes behaviour on
+the next evaluation with no rule edit.
+
+For a **topic** rule the labels come from the topic's **cluster** — topics carry
+no `franz.governance/*` labels of their own.
+
+**The key transform is mandatory, not cosmetic.** Label keys are kebab-case;
+identifiers are snake_case:
+
+| label | identifier |
+|---|---|
+| `franz.governance/max-brokers` | `governance.max_brokers` |
+| `franz.governance/replica-stdev` | `governance.replica_stdev` |
+| `franz.governance/disk-high-watermark` | `governance.disk_high_watermark` |
+
+`-` parses as **subtraction** in all four engines, so `governance.max-brokers`
+would read as `governance.max` minus `brokers`. The prefix is stripped and the
+remaining `-` become `_`.
+
+**Parse rules by value family.** Labels are strings; the family is fixed per key
+by the rule that reads it, and the parse is the same one `indicator.Unit.Family`
+already implements:
+
+| Family | Example label | Parses to |
+|---|---|---|
+| percentage | `disk-high-watermark: "70%"` | `70.0` — compared against a `*_pct` indicator |
+| byte size | `max-disk: "2Ti"` | bytes, via the existing SI/binary quantity parser |
+| plain number | `max-brokers: "6"` | `6` |
+| duration | `max-lag: "1d"` | nanoseconds, via the existing duration parser |
+| opaque string | `overflow-cluster: "carol"` | the string itself — a cluster name, not a bound |
+
+**Missing or malformed labels skip the rule instance — they never default.**
+A rule referencing `governance.max_brokers` on a cluster that does not set
+`franz.governance/max-brokers` **does not evaluate for that cluster**: the
+instance is skipped, the reason recorded as a `PolicyAction` with
+`result = skipped`, and surfaced on the rule. Other matched clusters are
+unaffected, because each is its own instance.
+
+There is no sane default. Treating a missing ceiling as `0` makes
+`cluster.brokers < governance.max_brokers` false and silently falls through to
+the taint branch; treating it as unbounded authorises unlimited broker additions.
+Both are worse than not acting. A malformed value (`"6 brokers"`,
+`"seventy percent"`) is treated identically to missing.
+
+**Considered resolved**, not open — defaulting a spend ceiling is indefensible.
+What remains open is *surfacing*: whether a skipped instance is only a
+`PolicyAction` row or also a visible rule health state (open question 6).
+
+### Governance labels used by the eight examples
+
+Every `governance.*` identifier appearing in any engine file, with the label that
+backs it. A cluster needs only the labels the rules matching it actually read.
+
+| Label on the `KafkaCluster` | Identifier | Family | Used by |
+|---|---|---|---|
+| `franz.governance/max-replicas` | `governance.max_replicas` | number | 1.a |
+| `franz.governance/replica-stdev` | `governance.replica_stdev` | percentage | 1.a |
+| `franz.governance/max-leaders` | `governance.max_leaders` | number | 1.b |
+| `franz.governance/leader-stdev` | `governance.leader_stdev` | percentage | 1.b |
+| `franz.governance/max-brokers` | `governance.max_brokers` | number | 1.a, 1.b, 1.c, 1.d |
+| `franz.governance/disk-high-watermark` | `governance.disk_high_watermark` | percentage | 1.c |
+| `franz.governance/disk-stdev` | `governance.disk_stdev` | percentage | 1.c |
+| `franz.governance/max-disk` | `governance.max_disk` | byte size | 1.c |
+| `franz.governance/next-disk-size` | `governance.next_disk_size` | byte size | 1.c *(action arg)* |
+| `franz.governance/disk-critical` | `governance.disk_critical` | percentage | 1.d |
+| `franz.governance/overflow-cluster` | `governance.overflow_cluster` | string | 1.d *(action arg)* |
+| `franz.governance/partition-throughput-ceiling` | `governance.partition_throughput_ceiling` | byte size | 2.b |
+| `franz.governance/partition-throughput-floor` | `governance.partition_throughput_floor` | byte size | 2.c |
+| `franz.governance/max-replica-size` | `governance.max_replica_size` | byte size | 2.c |
+| `franz.governance/target-rf` | `governance.target_rf` | number | 2.d *(action arg)* |
+
+A worked set for one cluster:
+
+```yaml
+franz.governance/max-replicas:                  "18000"
+franz.governance/replica-stdev:                 "10%"
+franz.governance/max-leaders:                   "9000"
+franz.governance/leader-stdev:                  "10%"
+franz.governance/max-brokers:                   "6"
+franz.governance/disk-high-watermark:           "70%"
+franz.governance/disk-stdev:                    "10%"
+franz.governance/disk-critical:                 "85%"
+franz.governance/max-disk:                      "2Ti"
+franz.governance/next-disk-size:                "1Ti"
+franz.governance/overflow-cluster:              "carol"
+franz.governance/partition-throughput-ceiling:  "9MB"
+franz.governance/partition-throughput-floor:    "7MB"
+franz.governance/max-replica-size:              "200Gi"
+franz.governance/target-rf:                     "3"
+```
+
+2.a needs none — its thresholds are literals (`1d`, `90d`) because they are
+properties of the rule's intent, not of the cluster.
 
 ## Action catalogue
 
@@ -86,6 +183,32 @@ From `governance/whitelist.go` — the implemented `(entity, field, kinds)` matr
    Governance reaches migration only indirectly, by writing `franz.affinity/*`
    on a channel or `franz.taint=drain` on a cluster, which the
    placement/migration flow resolves (`003.7`, `003.13`).
+
+### Action args interpolate `${governance.*}`
+
+An action's args are strings. A bare `governance.next_disk_size` inside one is
+indistinguishable from a literal, so interpolation is written with explicit
+delimiters:
+
+```yaml
+- {kind: UPDATE_FIELD, args: ["disk_size", "${governance.next_disk_size}"]}
+- {kind: MIGRATE_KAFKA_TOPIC, args: ["${governance.overflow_cluster}"]}
+```
+
+**Why interpolate at all.** Q5 put the ceilings on the cluster precisely so one
+rule can serve many clusters. If args could only be literals, any action needing
+a per-cluster value — a disk target, a migration destination, a replication
+factor — would need one rule per cluster, which defeats `selector: "env=prod"`
+matching twelve of them. Interpolation is required by the Q5 decision, not an
+extra.
+
+**Deliberately narrow.** Only `${governance.<name>}` interpolates — not
+`${cluster.*}`, not expressions, not arithmetic. Args are not a second
+expression language. That keeps `CreateRule` validation tractable: it can check
+the referenced key is well-formed and that the arg is valid for the
+`(entity, field, kind)` triple, even though the *value* is unknown until
+evaluation. A `${…}` reference to a missing label skips the instance, exactly as
+in a condition.
 
 ### Proposed for 006 (do not exist yet)
 
@@ -121,17 +244,17 @@ readability measure — and the one place `opa-rego` diverges sharply.
 
 Gate for 1.a — *"the busiest broker is at or over the replica cap"*:
 
-| `expr-lang` | `max(replicas_per_broker) >= budget.max_replicas` |
+| `expr-lang` | `max(replicas_per_broker) >= governance.max_replicas` |
 |---|---|
-| `cel` | `max(replicas_per_broker) >= budget.max_replicas` |
-| `opa-rego` | `max(input.replicas_per_broker) >= input.budget.max_replicas` |
-| structured AST | `{fn: max, of: replicas_per_broker, op: ">=", value: budget.max_replicas}` |
+| `cel` | `max(replicas_per_broker) >= governance.max_replicas` |
+| `opa-rego` | `max(input.replicas_per_broker) >= input.governance.max_replicas` |
+| structured AST | `{fn: max, of: replicas_per_broker, op: ">=", value: governance.max_replicas}` |
 
-Branch 2 of 1.a — *"there is broker budget left **and** the cluster is not tainted"*:
+Branch 2 of 1.a — *"there is broker headroom left **and** the cluster is not tainted"*:
 
-| `expr-lang` | `cluster.brokers < budget.max_brokers and not cluster.tainted` |
+| `expr-lang` | `cluster.brokers < governance.max_brokers and not cluster.tainted` |
 |---|---|
-| `cel` | `cluster.brokers < budget.max_brokers && !cluster.tainted` |
+| `cel` | `cluster.brokers < governance.max_brokers && !cluster.tainted` |
 | `opa-rego` | two body lines (implicit AND) + `not` — and no first-match ordering |
 | structured AST | `{all: [{field: cluster.brokers, op: "<", …}, {not: {field: cluster.tainted}}]}` |
 
@@ -162,7 +285,7 @@ Built and ran each engine against a representative condition. franz today:
 
 1. **Negligible cost** — 1 module, no transitive deps, +3 MB on 28 MB.
 2. **Reads like the rule was described** —
-   `stdev_pct(disk_used_pct) > budget.disk_stdev and cluster.brokers < budget.max_brokers`.
+   `stdev_pct(disk_used_pct) > governance.disk_stdev and cluster.brokers < governance.max_brokers`.
 3. **Branch order stays in the rule document**, which is what makes 1.a a single
    readable artifact.
 4. **Compile-time type errors with positions** give `DryRunPolicy` a real error
@@ -191,5 +314,5 @@ generate expr strings from a form, giving a condition-builder UI either way.
 3. **`disk_size` needs `INCREASE_FIELD_BY`**, or 1.c stays absolute-only.
 4. **Migration as a first-class action** (`MIGRATE_KAFKA_TOPIC` / `MIGRATE_CLUSTER`) vs. routing through `franz.affinity/*` and `franz.taint=drain`.
 5. **Operations break the declared-state invariant** — rebalance and both migrate kinds are async operations, not field writes (Q4, ADR 007).
-6. **`budget.*` typing** — labels are strings; `"10%"`, `"18000"`, `"100Gi"` parse differently. Does a malformed budget label disable the rule or fail loudly?
+6. **Surfacing a skipped instance** — a missing or malformed `franz.governance/*` label skips that rule instance (decided above, see [Where `governance.*` comes from](#where-governance-comes-from)). Open: whether that is only a `PolicyAction` row with `result = skipped`, or also a visible health state on the rule so an operator notices a rule that has silently stopped acting on one cluster.
 7. **First deliverable scope** — cluster rules only, or cluster and topic together.

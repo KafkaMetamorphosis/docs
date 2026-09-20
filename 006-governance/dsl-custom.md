@@ -14,18 +14,26 @@ No expression parser. Conditions are structured data with explicit `all` / `any`
 Node forms used below:
 
 ```yaml
-{fn: <host-fn>, of: <indicator>, op: <cmp>, value: <literal|budget.x>}
+{fn: <host-fn>, of: <indicator>, op: <cmp>, value: <literal|governance.x>}
 {fn: <host-fn>, of: <indicator>, window: <dur>, op: <cmp>, value: …}
 {field: <path>, op: <cmp>, value: …}
 {field: <path>}                       # truthiness
 {all: [...]}   {any: [...]}   {not: {...}}
 ```
 
+
+> Every `governance.*` identifier used below is backed by a
+> `franz.governance/*` label on the matched cluster — the complete list, with
+> families and a worked set, is in
+> [dsl-comparison.md](./dsl-comparison.md#governance-labels-used-by-the-eight-examples).
+> `${governance.x}` inside an action arg is interpolated at evaluation time; a
+> missing or malformed label skips that rule instance rather than defaulting.
+
 ---
 
 ## 1.a — replicas per broker
 
-Rebalance if skewed, else add a broker if budget allows, else taint.
+Rebalance if skewed, else add a broker if there is headroom, else taint.
 
 ```yaml
 rule: cluster-replica-pressure
@@ -40,20 +48,20 @@ guard:
 
 when:
   all:
-    - {fn: max, of: replicas_per_broker, op: ">=", value: budget.max_replicas}
+    - {fn: max, of: replicas_per_broker, op: ">=", value: governance.max_replicas}
 
 branches:
   # skewed — moving replicas to the quieter brokers helps
   - when:
       all:
-        - {fn: stdev_pct, of: replicas_per_broker, op: ">", value: budget.replica_stdev}
+        - {fn: stdev_pct, of: replicas_per_broker, op: ">", value: governance.replica_stdev}
     then:
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
 
   # evenly loaded but at the cap — buy capacity, then spread onto it
   - when:
       all:
-        - {field: cluster.brokers, op: "<", value: budget.max_brokers}
+        - {field: cluster.brokers, op: "<", value: governance.max_brokers}
         - not: {field: cluster.tainted}
     then:
       - {kind: INCREASE_FIELD_BY, args: ["brokers", "1"]}
@@ -91,18 +99,18 @@ guard:
 
 when:
   all:
-    - {fn: max, of: leaders_per_broker, op: ">=", value: budget.max_leaders}
+    - {fn: max, of: leaders_per_broker, op: ">=", value: governance.max_leaders}
 
 branches:
   - when:
       all:
-        - {fn: stdev_pct, of: leaders_per_broker, op: ">", value: budget.leader_stdev}
+        - {fn: stdev_pct, of: leaders_per_broker, op: ">", value: governance.leader_stdev}
     then:
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
 
   - when:
       all:
-        - {field: cluster.brokers, op: "<", value: budget.max_brokers}
+        - {field: cluster.brokers, op: "<", value: governance.max_brokers}
         - not: {field: cluster.tainted}
     then:
       - {kind: INCREASE_FIELD_BY, args: ["brokers", "1"]}
@@ -111,6 +119,15 @@ branches:
   - otherwise:
     then:
       - {kind: ADD_LABEL, args: ["franz.taint", "capacity:no-creation"]}
+```
+
+
+Cluster labels this rule reads:
+
+```yaml
+franz.governance/max-leaders:  "9000"
+franz.governance/leader-stdev: "10%"
+franz.governance/max-brokers:  "6"
 ```
 
 ## 1.c — disk used per broker
@@ -131,13 +148,13 @@ guard:
 
 when:
   all:
-    - {fn: max, of: disk_used_pct, op: ">=", value: budget.disk_high_watermark}
+    - {fn: max, of: disk_used_pct, op: ">=", value: governance.disk_high_watermark}
 
 branches:
   # skewed — some brokers have room, moving data helps
   - when:
       all:
-        - {fn: stdev_pct, of: disk_used_pct, op: ">", value: budget.disk_stdev}
+        - {fn: stdev_pct, of: disk_used_pct, op: ">", value: governance.disk_stdev}
     then:
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
 
@@ -145,14 +162,14 @@ branches:
   # UPDATE_FIELD because disk_size has no INCREASE_FIELD_BY (action catalogue).
   - when:
       all:
-        - {field: cluster.disk_size, op: "<", value: budget.max_disk}
+        - {field: cluster.disk_size, op: "<", value: governance.max_disk}
     then:
-      - {kind: UPDATE_FIELD, args: ["disk_size", "budget.next_disk_size"]}
+      - {kind: UPDATE_FIELD, args: ["disk_size", "${governance.next_disk_size}"]}
 
   # disks capped, brokers are not — add capacity and spread onto it
   - when:
       all:
-        - {field: cluster.brokers, op: "<", value: budget.max_brokers}
+        - {field: cluster.brokers, op: "<", value: governance.max_brokers}
     then:
       - {kind: INCREASE_FIELD_BY, args: ["brokers", "1"]}
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
@@ -188,13 +205,13 @@ guard:
 when:
   all:
     - {field: cluster.tainted}
-    - {fn: max, of: disk_used_pct, op: ">=", value: budget.disk_critical}
-    - {field: cluster.brokers, op: ">=", value: budget.max_brokers}
+    - {fn: max, of: disk_used_pct, op: ">=", value: governance.disk_critical}
+    - {field: cluster.brokers, op: ">=", value: governance.max_brokers}
 
 branches:
   - otherwise:
     then:
-      - {kind: MIGRATE_KAFKA_TOPIC, args: ["budget.overflow_cluster"]}
+      - {kind: MIGRATE_KAFKA_TOPIC, args: ["${governance.overflow_cluster}"]}
 ```
 
 The cluster-wide variant, on a `KAFKA_CLUSTER` scope:
@@ -207,7 +224,7 @@ guard: {cooldown: 6h, max_fires_per_day: 1, skip_if_operation_in_flight: true}
 when:
   all:
     - {field: cluster.tainted}
-    - {fn: max, of: disk_used_pct, op: ">=", value: budget.disk_critical}
+    - {fn: max, of: disk_used_pct, op: ">=", value: governance.disk_critical}
 
 branches:
   - otherwise:
@@ -265,7 +282,7 @@ when:
   all:
     - {field: topic.partitions, op: "==", value: 1}
     - {fn: avg_over, of: throughput_in, window: "1h",
-       op: ">=", value: budget.partition_throughput_ceiling}
+       op: ">=", value: governance.partition_throughput_ceiling}
 
 branches:
   - otherwise:
@@ -287,9 +304,9 @@ guard:
 
 when:
   all:
-    - {fn: max, of: replica_size, op: ">", value: budget.max_replica_size}
+    - {fn: max, of: replica_size, op: ">", value: governance.max_replica_size}
     - {fn: avg_over, of: throughput_in, window: "1h",
-       op: ">=", value: budget.partition_throughput_floor}
+       op: ">=", value: governance.partition_throughput_floor}
     - {field: 'topic.config["local.retention.ms"]', op: "<=", value: "1d"}
 
 branches:
@@ -318,13 +335,13 @@ guard:
 
 when:
   all:
-    - {field: topic.replication_factor, op: "<", value: budget.target_rf}
-    - {field: cluster.brokers, op: ">=", value: budget.target_rf}
+    - {field: topic.replication_factor, op: "<", value: governance.target_rf}
+    - {field: cluster.brokers, op: ">=", value: governance.target_rf}
 
 branches:
   - otherwise:
     then:
-      - {kind: UPDATE_FIELD, args: ["replication_factor", "budget.target_rf"]}
+      - {kind: UPDATE_FIELD, args: ["replication_factor", "${governance.target_rf}"]}
 ```
 
 The second clause matters: RF must not exceed the broker count. The whitelist
@@ -341,18 +358,18 @@ yet capped)"* — nesting shows its cost:
 ```yaml
 when:
   all:
-    - {fn: max, of: disk_used_pct, op: ">=", value: budget.disk_high_watermark}
+    - {fn: max, of: disk_used_pct, op: ">=", value: governance.disk_high_watermark}
     - any:
-        - {fn: stdev_pct, of: disk_used_pct, op: ">", value: budget.disk_stdev}
-        - not: {field: cluster.disk_size, op: ">=", value: budget.max_disk}
+        - {fn: stdev_pct, of: disk_used_pct, op: ">", value: governance.disk_stdev}
+        - not: {field: cluster.disk_size, op: ">=", value: governance.max_disk}
 ```
 
 Against the same thing in expr:
 
 ```
-max(disk_used_pct) >= budget.disk_high_watermark
-  and (stdev_pct(disk_used_pct) > budget.disk_stdev
-       or cluster.disk_size < budget.max_disk)
+max(disk_used_pct) >= governance.disk_high_watermark
+  and (stdev_pct(disk_used_pct) > governance.disk_stdev
+       or cluster.disk_size < governance.max_disk)
 ```
 
 Eight lines of nested YAML against three of prose, for identical semantics.

@@ -12,11 +12,19 @@ Common Expression Language (Google; the engine behind Kubernetes admission
 policies). `&&` / `||` / `!` instead of words. `max` / `stdev_pct` / `max_over` /
 `avg_over` are registered Go host functions; CEL supplies `duration` natively.
 
+
+> Every `governance.*` identifier used below is backed by a
+> `franz.governance/*` label on the matched cluster — the complete list, with
+> families and a worked set, is in
+> [dsl-comparison.md](./dsl-comparison.md#governance-labels-used-by-the-eight-examples).
+> `${governance.x}` inside an action arg is interpolated at evaluation time; a
+> missing or malformed label skips that rule instance rather than defaulting.
+
 ---
 
 ## 1.a — replicas per broker
 
-Rebalance if skewed, else add a broker if budget allows, else taint.
+Rebalance if skewed, else add a broker if there is headroom, else taint.
 
 ```yaml
 rule: cluster-replica-pressure
@@ -29,16 +37,16 @@ guard:
   max_fires_per_day: 4
   skip_if_operation_in_flight: true
 
-when: 'max(replicas_per_broker) >= budget.max_replicas'
+when: 'max(replicas_per_broker) >= governance.max_replicas'
 
 branches:
   # skewed — moving replicas to the quieter brokers helps
-  - when: 'stdev_pct(replicas_per_broker) > budget.replica_stdev'
+  - when: 'stdev_pct(replicas_per_broker) > governance.replica_stdev'
     then:
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
 
   # evenly loaded but at the cap — buy capacity, then spread onto it
-  - when: 'cluster.brokers < budget.max_brokers && !cluster.tainted'
+  - when: 'cluster.brokers < governance.max_brokers && !cluster.tainted'
     then:
       - {kind: INCREASE_FIELD_BY, args: ["brokers", "1"]}
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
@@ -72,14 +80,14 @@ guard:
   max_fires_per_day: 4
   skip_if_operation_in_flight: true
 
-when: 'max(leaders_per_broker) >= budget.max_leaders'
+when: 'max(leaders_per_broker) >= governance.max_leaders'
 
 branches:
-  - when: 'stdev_pct(leaders_per_broker) > budget.leader_stdev'
+  - when: 'stdev_pct(leaders_per_broker) > governance.leader_stdev'
     then:
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
 
-  - when: 'cluster.brokers < budget.max_brokers && !cluster.tainted'
+  - when: 'cluster.brokers < governance.max_brokers && !cluster.tainted'
     then:
       - {kind: INCREASE_FIELD_BY, args: ["brokers", "1"]}
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
@@ -87,6 +95,15 @@ branches:
   - otherwise:
     then:
       - {kind: ADD_LABEL, args: ["franz.taint", "capacity:no-creation"]}
+```
+
+
+Cluster labels this rule reads:
+
+```yaml
+franz.governance/max-leaders:  "9000"
+franz.governance/leader-stdev: "10%"
+franz.governance/max-brokers:  "6"
 ```
 
 ## 1.c — disk used per broker
@@ -105,23 +122,23 @@ guard:
   max_fires_per_day: 2
   skip_if_operation_in_flight: true
 
-when: 'max(disk_used_pct) >= budget.disk_high_watermark'
+when: 'max(disk_used_pct) >= governance.disk_high_watermark'
 
 branches:
   # skewed — some brokers have room, moving data helps
-  - when: 'stdev_pct(disk_used_pct) > budget.disk_stdev'
+  - when: 'stdev_pct(disk_used_pct) > governance.disk_stdev'
     then:
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
 
   # uniformly full — rebalancing cannot help, grow the disks.
   # UPDATE_FIELD because disk_size has no INCREASE_FIELD_BY (see the
-  # action catalogue); budget.next_disk_size is an operator-set label.
-  - when: 'cluster.disk_size < budget.max_disk'
+  # action catalogue); governance.next_disk_size is an operator-set label.
+  - when: 'cluster.disk_size < governance.max_disk'
     then:
-      - {kind: UPDATE_FIELD, args: ["disk_size", "budget.next_disk_size"]}
+      - {kind: UPDATE_FIELD, args: ["disk_size", "${governance.next_disk_size}"]}
 
   # disks capped, brokers are not — add capacity and spread onto it
-  - when: 'cluster.brokers < budget.max_brokers'
+  - when: 'cluster.brokers < governance.max_brokers'
     then:
       - {kind: INCREASE_FIELD_BY, args: ["brokers", "1"]}
       - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
@@ -156,13 +173,13 @@ guard:
 
 when: >
   cluster.tainted
-  && max(disk_used_pct) >= budget.disk_critical
-  && cluster.brokers >= budget.max_brokers
+  && max(disk_used_pct) >= governance.disk_critical
+  && cluster.brokers >= governance.max_brokers
 
 branches:
   - otherwise:
     then:
-      - {kind: MIGRATE_KAFKA_TOPIC, args: ["budget.overflow_cluster"]}
+      - {kind: MIGRATE_KAFKA_TOPIC, args: ["${governance.overflow_cluster}"]}
 ```
 
 The cluster-wide variant, on a `KAFKA_CLUSTER` scope:
@@ -171,7 +188,7 @@ The cluster-wide variant, on a `KAFKA_CLUSTER` scope:
 rule: cluster-drain-saturated
 scope:   {entity: KAFKA_CLUSTER, selector: "env=prod"}
 guard:   {cooldown: 6h, max_fires_per_day: 1, skip_if_operation_in_flight: true}
-when:    'cluster.tainted && max(disk_used_pct) >= budget.disk_critical'
+when:    'cluster.tainted && max(disk_used_pct) >= governance.disk_critical'
 branches:
   - otherwise:
     then:
@@ -225,7 +242,7 @@ guard:
 
 when: >
   topic.partitions == 1
-  && avg_over(throughput_in, duration("1h")) >= budget.partition_throughput_ceiling
+  && avg_over(throughput_in, duration("1h")) >= governance.partition_throughput_ceiling
 
 branches:
   - otherwise:
@@ -246,8 +263,8 @@ guard:
   skip_if_operation_in_flight: true
 
 when: >
-  max(replica_size) > budget.max_replica_size
-  && avg_over(throughput_in, duration("1h")) >= budget.partition_throughput_floor
+  max(replica_size) > governance.max_replica_size
+  && avg_over(throughput_in, duration("1h")) >= governance.partition_throughput_floor
   && topic.config["local.retention.ms"] <= duration("24h")
 
 branches:
@@ -275,13 +292,13 @@ guard:
   skip_if_operation_in_flight: true
 
 when: >
-  topic.replication_factor < budget.target_rf
-  && cluster.brokers >= budget.target_rf
+  topic.replication_factor < governance.target_rf
+  && cluster.brokers >= governance.target_rf
 
 branches:
   - otherwise:
     then:
-      - {kind: UPDATE_FIELD, args: ["replication_factor", "budget.target_rf"]}
+      - {kind: UPDATE_FIELD, args: ["replication_factor", "${governance.target_rf}"]}
 ```
 
 The second clause matters: RF must not exceed the broker count. The whitelist
@@ -296,7 +313,7 @@ CEL has native list macros the other text engines lack — `all`, `exists`,
 host function at all:
 
 ```
-replicas_per_broker.all(r, r < budget.max_replicas)
+replicas_per_broker.all(r, r < governance.max_replicas)
 ```
 
 Verified working: `replicas.all(r, r < 4000.0) && brokers < 6` compiles and

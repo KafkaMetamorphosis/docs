@@ -26,6 +26,14 @@ wins**. Rego does not work that way:
 Each example is therefore **two artifacts**: a `.rego` policy and an
 action-mapping document.
 
+
+> Every `governance.*` identifier used below is backed by a
+> `franz.governance/*` label on the matched cluster — the complete list, with
+> families and a worked set, is in
+> [dsl-comparison.md](./dsl-comparison.md#governance-labels-used-by-the-eight-examples).
+> `${governance.x}` inside an action arg is interpolated at evaluation time; a
+> missing or malformed label skips that rule instance rather than defaulting.
+
 ---
 
 ## 1.a — replicas per broker
@@ -36,13 +44,13 @@ import rego.v1
 
 # gate
 pressure if {
-	max(input.replicas_per_broker) >= input.budget.max_replicas
+	max(input.replicas_per_broker) >= input.governance.max_replicas
 }
 
 # extracted so the negation below reads as `not skewed` rather than
 # repeating the whole comparison
 skewed if {
-	stdev_pct(input.replicas_per_broker) > input.budget.replica_stdev
+	stdev_pct(input.replicas_per_broker) > input.governance.replica_stdev
 }
 
 decision := {"action": "rebalance"} if {
@@ -53,7 +61,7 @@ decision := {"action": "rebalance"} if {
 decision := {"action": "add_broker"} if {
 	pressure
 	not skewed
-	input.cluster.brokers < input.budget.max_brokers
+	input.cluster.brokers < input.governance.max_brokers
 	not input.cluster.tainted
 }
 
@@ -95,11 +103,11 @@ package franz.governance.cluster_leader_pressure
 import rego.v1
 
 pressure if {
-	max(input.leaders_per_broker) >= input.budget.max_leaders
+	max(input.leaders_per_broker) >= input.governance.max_leaders
 }
 
 skewed if {
-	stdev_pct(input.leaders_per_broker) > input.budget.leader_stdev
+	stdev_pct(input.leaders_per_broker) > input.governance.leader_stdev
 }
 
 decision := {"action": "rebalance"} if {
@@ -110,7 +118,7 @@ decision := {"action": "rebalance"} if {
 decision := {"action": "add_broker"} if {
 	pressure
 	not skewed
-	input.cluster.brokers < input.budget.max_brokers
+	input.cluster.brokers < input.governance.max_brokers
 	not input.cluster.tainted
 }
 
@@ -138,6 +146,15 @@ actions:
     - {kind: ADD_LABEL, args: ["franz.taint", "capacity:no-creation"]}
 ```
 
+
+Cluster labels this rule reads:
+
+```yaml
+franz.governance/max-leaders:  "9000"
+franz.governance/leader-stdev: "10%"
+franz.governance/max-brokers:  "6"
+```
+
 ## 1.c — disk used per broker
 
 Four branches, so the negation chain grows with each one. The fourth branch is
@@ -148,19 +165,19 @@ package franz.governance.cluster_disk_pressure
 import rego.v1
 
 pressure if {
-	max(input.disk_used_pct) >= input.budget.disk_high_watermark
+	max(input.disk_used_pct) >= input.governance.disk_high_watermark
 }
 
 skewed if {
-	stdev_pct(input.disk_used_pct) > input.budget.disk_stdev
+	stdev_pct(input.disk_used_pct) > input.governance.disk_stdev
 }
 
 disk_has_room if {
-	input.cluster.disk_size < input.budget.max_disk
+	input.cluster.disk_size < input.governance.max_disk
 }
 
 broker_has_room if {
-	input.cluster.brokers < input.budget.max_brokers
+	input.cluster.brokers < input.governance.max_brokers
 }
 
 # skewed — some brokers have room, moving data helps
@@ -203,7 +220,7 @@ actions:
     - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
   # UPDATE_FIELD because disk_size has no INCREASE_FIELD_BY (action catalogue)
   grow_disk:
-    - {kind: UPDATE_FIELD, args: ["disk_size", "budget.next_disk_size"]}
+    - {kind: UPDATE_FIELD, args: ["disk_size", "${governance.next_disk_size}"]}
   add_broker:
     - {kind: INCREASE_FIELD_BY, args: ["brokers", "1"]}
     - {kind: ADD_LABEL, args: ["franz.governance/needs-rebalance", "$now"]}
@@ -227,8 +244,8 @@ import rego.v1
 
 decision := {"action": "migrate"} if {
 	input.cluster.tainted
-	max(input.disk_used_pct) >= input.budget.disk_critical
-	input.cluster.brokers >= input.budget.max_brokers
+	max(input.disk_used_pct) >= input.governance.disk_critical
+	input.cluster.brokers >= input.governance.max_brokers
 }
 
 default decision := {"action": "none"}
@@ -246,7 +263,7 @@ guard:
 policy: franz/governance/topic_evacuate_saturated.rego
 actions:
   migrate:
-    - {kind: MIGRATE_KAFKA_TOPIC, args: ["budget.overflow_cluster"]}
+    - {kind: MIGRATE_KAFKA_TOPIC, args: ["${governance.overflow_cluster}"]}
   none: []
 ```
 
@@ -258,7 +275,7 @@ import rego.v1
 
 decision := {"action": "drain"} if {
 	input.cluster.tainted
-	max(input.disk_used_pct) >= input.budget.disk_critical
+	max(input.disk_used_pct) >= input.governance.disk_critical
 }
 
 default decision := {"action": "none"}
@@ -322,7 +339,7 @@ import rego.v1
 
 decision := {"action": "add_partition"} if {
 	input.topic.partitions == 1
-	avg_over(input.throughput_in, "1h") >= input.budget.partition_throughput_ceiling
+	avg_over(input.throughput_in, "1h") >= input.governance.partition_throughput_ceiling
 }
 
 default decision := {"action": "none"}
@@ -350,8 +367,8 @@ package franz.governance.topic_partition_growth_size
 import rego.v1
 
 decision := {"action": "add_partition"} if {
-	max(input.replica_size) > input.budget.max_replica_size
-	avg_over(input.throughput_in, "1h") >= input.budget.partition_throughput_floor
+	max(input.replica_size) > input.governance.max_replica_size
+	avg_over(input.throughput_in, "1h") >= input.governance.partition_throughput_floor
 	input.topic.config["local.retention.ms"] <= 86400000
 }
 
@@ -384,8 +401,8 @@ package franz.governance.topic_replication_floor
 import rego.v1
 
 decision := {"action": "set_rf"} if {
-	input.topic.replication_factor < input.budget.target_rf
-	input.cluster.brokers >= input.budget.target_rf
+	input.topic.replication_factor < input.governance.target_rf
+	input.cluster.brokers >= input.governance.target_rf
 }
 
 default decision := {"action": "none"}
@@ -402,7 +419,7 @@ guard:
   skip_if_operation_in_flight: true
 policy: franz/governance/topic_replication_floor.rego
 actions:
-  set_rf: [{kind: UPDATE_FIELD, args: ["replication_factor", "budget.target_rf"]}]
+  set_rf: [{kind: UPDATE_FIELD, args: ["replication_factor", "${governance.target_rf}"]}]
   none: []
 ```
 
