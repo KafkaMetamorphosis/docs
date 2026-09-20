@@ -1118,3 +1118,18 @@ creates a `kafka_topic` row (placement does — ADR-API-009).
 cluster (005 OQ1) — is not yet handled: both currently receive the cluster's
 partitions. Horizontal scale-out of one Gregor Samsa scope (005 OQ7) is not
 modelled. ACLs / Kafka users / quotas (005 Parts 3–5) are out of scope.
+
+### ADR-API-012: Governance rule engine (expr-lang) & console live editor
+
+Full doc: `006-governance/README.md`. Evolves the single-indicator `Policy` model (`003.8`) into composite remediation rules.
+
+- **Engine:** `expr-lang/expr` (+3.05 MB, 0 transitive deps) chosen over CEL, OPA, and custom AST. Supports Go-registered host functions (`max`, `stdev_pct`, `max_over`, etc.) and returns compile-time type errors with line/column coordinates.
+- **Document Format:** Rules are authored and stored as single pure YAML documents.
+- **Console Editor & Dry-Run:** Built with CodeMirror 6. On input (debounced), calls `POST /v1/governance/rules:dryRun` for server-side compilation and real-time simulation against fleet snapshots without mutating state.
+- **Scoping & Sub-resources:** Label-selects parent entity (`KAFKA_CLUSTER`, `KAFKA_TOPIC`) and optionally descends to sub-resources (`descend: {kind: broker}`).
+- **Governance Ceilings:** Per-cluster limits live as `franz.governance/*` labels on `KafkaCluster`, injected as `governance.<snake_case>`. Action args support `${governance.*}` interpolation. Missing/malformed labels skip the instance, record `PolicyAction(result=skipped)`, and flag a Rule Health Warning (`CONFIG_MISSING`).
+- **Execution Guards:** Mandatory `cooldown`, `max_fires_per_day`, and `skip_if_operation_in_flight: true`.
+- **Dynamic Disk Sizing:** Sized to reach `target_usage_pct` based on projected 24h consumption, bounded by `governance.max_disk`.
+- **Operations Bridge:** Rebalance emits a declarative label signal (`ADD_LABEL franz.governance/needs-rebalance: "$now"`), paving the way for ADR 007 operations. Migration actions are dropped from 006.
+- **Retention:** Sample pruning retention is configurable (`telemetry.sample_retention`); rules with window functions are validated against this ceiling.
+

@@ -26,6 +26,7 @@ under governance.
 | [`003-franz/`](./003-franz/README.md) | Franz specs — entities, conventions, placement, governance, persistence |
 | [`004-local-kafka-docker-agent/`](./004-local-kafka-docker-agent/README.md) | First Cluster Provider agent — interaction contract + local Docker recipe |
 | [`005-gregor-samsa/`](./005-gregor-samsa/README.md) | Resource Provider agent — materialises Async Channel intent (topics) into Kafka + telemetry |
+| [`006-governance/`](./006-governance/README.md) | Governance rule engine (expr-lang), remediation ladders & console editor |
 | [`105-odradek/`](./105-odradek/005-odradek.md) | Odradek telemetry agent |
 | [`106-operations/`](./106-operations/006.0-overview.md) | Deployment, configuration, observability |
 | [`DECISIONS.md`](./DECISIONS.md) | Architecture Decision Records |
